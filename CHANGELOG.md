@@ -1,4 +1,8 @@
 # Changelog
+## v1.1.0 (2026-11-11)
+- Removed the large IHS logo. Two sharks now frame ISLANDS BAND, facing each other, with a thin light outline so their black fins show on the dark board.
+- The agenda header and browser tab icon use the shark too.
+
 ## v1.0.4 (2026-11-11)
 - Smaller logo. The title, clock, date and cards are now centered on the screen, and AM no longer pushes the time off-center.
 

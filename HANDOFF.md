@@ -4,8 +4,8 @@
 **Hosting:** GitHub Pages, artificialfear/sharks-band. The Viewboard opens https://artificialfear.github.io/sharks-band/
 
 ## Current state (v1.0)
-- Single self-contained `index.html` plus `assets/shark-logo.png`. The logo is the IHS Sharks logo re-cut from the source at 2x (908x958). The white background was flood-removed, and the anti-aliased rim within 4px of the background was un-matted to black with alpha = 1 - luminance, which removes the white fringe. Tiny detached specks were dropped. Bump `?v=` on the logo URL when you replace it. No CDN dependencies.
-- Welcome screen: shark logo, "ISLANDS BAND" (Islands in white, Band in teal, one line), a big clock and the date, a "Next up" event countdown card, a "Today" note card, and one button per class.
+- Single self-contained `index.html` plus `assets/shark.png`: Mat's standalone shark (from shark.jpeg), with the white background flood-removed and the edge rim un-matted to black. The inside of the shark's curl is background in this artwork. The right-hand shark is the same file mirrored with CSS `scaleX(-1)`. A light CSS drop-shadow outline keeps the black fins visible on the dark background. The old IHS logo was removed in v1.1.0. Bump `?v=` when you replace the image.
+- Welcome screen: two facing sharks either side of the title, "ISLANDS BAND" (Islands in white, Band in teal, one line), a big clock and the date, a "Next up" event countdown card, a "Today" note card, and one button per class.
 - Class agenda screen: Goal, Today's Plan (numbered; tap an item to cross it off), Reminders, Home/Edit/Timer, and a warning when the agenda is from a previous day.
 - Timer overlay: presets of 1/2/3/5/10/15 min and ±1 min; plays a chime at 0:00.
 - Settings (gear icon): school and program name, class list (one per line), next event and date, welcome note, and JSON export/import.
