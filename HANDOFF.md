@@ -37,3 +37,12 @@
 - `assets/ihs-band-logo.png`: a re-creation of the IHS Sharks badge reading "IHS BAND", with a transparent background.
 - `assets/ihs-band-logo-white-border.png`: the same logo with a thin white outer border, for dark backgrounds.
 - To rebuild, use `tools/build_logo.py`. Lettering is Anton (IHS) and Archivo Black (BAND), both from the npm packages @fontsource/anton and @fontsource/archivo-black, with the .woff converted to .ttf by fontTools into /tmp/fonts. The letters are sheared 6-7° for italic, with a white fill, a 9px teal stroke and a 26px black stroke (at 1000px). The shark is assets/shark.png at 0.714 scale, offset (140,236), matching its position in the original badge.
+
+## Universal trip page (trip/, added 2026-11-11 for the Sat Nov 14 2026 marching band trip)
+- URL: https://artificialfear.github.io/sharks-band/trip/ . Chaperone tools are at `#chap`. Student links are `#s=<base64url JSON {c:chaperone, p:phone, g:group, b:[backups]}>`, made on the chaperone Setup tab, with a QR code from the vendored qrcode-generator (MIT).
+- No backend. Students' check-in and help buttons are `sms:NUM?&body=…` links (`?&` works on both iOS and Android) and `tel:` links. The student enters their name once; it's saved in localStorage on their phone.
+- Chaperone roster, check-ins, bus counts and the lost-student checklist are stored in localStorage on each chaperone's phone (key `trip.chap.v1`). No student data is in the repo.
+- Chaperone names and numbers live only in the link's #fragment, which is never sent to the server, but anyone with the link can read them.
+- Trip details (check-in times, schedule, bus spot, regroup spot, rules) are in `trip/trip-config.js`. Several are still TBD and waiting on Mat. Bump `?v=` on the script tag after edits.
+- Decisions (Mat): text/call buttons instead of a live board; check-ins at set times plus an in-person lunch meetup; both parks park-to-park, with CityWalk only with chaperone OK; chaperones are Emily, Mat and Kaitlynn (color guard).
+- Test: `python3 tests/trip_smoke.py --shots /tmp/trip`
