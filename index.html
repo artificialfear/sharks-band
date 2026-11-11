@@ -32,13 +32,13 @@
       linear-gradient(180deg,#07090a 0%,#0a1112 100%)}
   .stripe{height:1.1vmin;background:var(--teal);box-shadow:0 .5vmin 0 0 #0b0f10,0 .8vmin 0 0 rgba(255,255,255,.85)}
   .home-main{flex:1;display:flex;align-items:center;justify-content:center;padding:3vmin 3vmin 1vmin}
-  .title-row{display:flex;align-items:center;justify-content:center;gap:3vmin}
-  .shark{height:26vmin;width:auto;flex:none;
+  .title-row{display:flex;align-items:center;justify-content:center;gap:2vmin;margin-bottom:4vmin}
+  .shark{height:30vmin;width:auto;flex:none;
     filter:drop-shadow(0 0 .25vmin rgba(255,255,255,.95)) drop-shadow(0 0 .25vmin rgba(255,255,255,.95)) drop-shadow(0 0 2.5vmin rgba(60,199,192,.35))}
-  .shark{margin-top:8vmin}
-  .shark.flip{transform:scaleX(-1)}
+  .shark{transform:translateY(8vmin)}
+  .shark.flip{transform:translateY(8vmin) scaleX(-1)}
   .home-right{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2.2vmin;padding:0 1vmin}
-  .program{font-weight:900;text-transform:uppercase;letter-spacing:.08em;font-size:9.5vmin;line-height:1;white-space:nowrap}
+  .program{font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:12.5vmin;line-height:1;white-space:nowrap}
   .program span{color:var(--teal-hi)}
   .clock{font-size:17vmin;font-weight:800;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
   .clock{position:relative}
@@ -126,7 +126,8 @@
   .toast.on{display:block}
 
   @media (max-aspect-ratio:1/1){
-    .shark{height:18vmin}
+    .shark{height:20vmin}
+    .program{font-size:10vmin}
     .home-right{padding-left:0;align-items:center}
     .ag-body{grid-template-columns:1fr;overflow:auto}
   }

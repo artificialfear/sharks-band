@@ -1,4 +1,7 @@
 # Changelog
+## v1.1.1 (2026-11-11)
+- Bigger ISLANDS BAND title and bigger sharks, with the sharks lowered to sit centered on the title.
+
 ## v1.1.0 (2026-11-11)
 - Removed the large IHS logo. Two sharks now frame ISLANDS BAND, facing each other, with a thin light outline so their black fins show on the dark board.
 - The agenda header and browser tab icon use the shark too.
