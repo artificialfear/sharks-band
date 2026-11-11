@@ -1,4 +1,7 @@
 # Changelog
+## v1.0.2 (2026-11-11)
+- Welcome screen: school name, BAND, clock, date and cards are now centered on one line, and BAND is much larger.
+
 ## v1.0.1 (2026-11-11)
 - Cleaner shark logo: removed the white specks around the edge, and doubled the resolution for a sharper look on the Viewboard.
 
