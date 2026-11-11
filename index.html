@@ -30,17 +30,13 @@
   #home{background:
       radial-gradient(ellipse at 18% 45%, rgba(35,150,146,.28), transparent 55%),
       linear-gradient(180deg,#07090a 0%,#0a1112 100%)}
-  .stripe{height:1.1vmin;background:var(--teal);box-shadow:0 .5vmin 0 0 #0b0f10,0 .8vmin 0 0 rgba(255,255,255,.85)}
-  .home-main{flex:1;display:flex;align-items:center;justify-content:center;padding:3vmin 3vmin 1vmin}
-  .title-row{display:flex;align-items:center;justify-content:center;gap:2vmin;margin-bottom:4vmin}
-  .shark{height:30vmin;width:auto;flex:none;
-    filter:drop-shadow(0 0 .25vmin rgba(255,255,255,.95)) drop-shadow(0 0 .25vmin rgba(255,255,255,.95)) drop-shadow(0 0 2.5vmin rgba(60,199,192,.35))}
-  .shark{transform:translateY(8vmin)}
-  .shark.flip{transform:translateY(8vmin) scaleX(-1)}
-  .home-right{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2.2vmin;padding:0 1vmin}
+  .stripe{flex:none;height:1.1vmin;background:var(--teal);box-shadow:0 .5vmin 0 0 #0b0f10,0 .8vmin 0 0 rgba(255,255,255,.85)}
+  .home-main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:3vmin 3vmin 1vmin}
+  .biglogo{height:40vh;width:auto;filter:drop-shadow(0 1vmin 3vmin rgba(0,0,0,.6)) drop-shadow(0 0 3vmin rgba(60,199,192,.25))}
+  .home-right{display:flex;flex-direction:column;align-items:center;text-align:center;gap:1.6vmin;padding:0 1vmin}
   .program{font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:12.5vmin;line-height:1;white-space:nowrap}
   .program span{color:var(--teal-hi)}
-  .clock{font-size:17vmin;font-weight:800;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .clock{font-size:14vmin;font-weight:800;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
   .clock{position:relative}
   .clock small{position:absolute;left:100%;bottom:.12em;font-size:.28em;font-weight:700;color:var(--muted);margin-left:1.5vmin;letter-spacing:.05em}
   .date{font-size:3.6vmin;color:var(--muted);font-weight:600}
@@ -50,7 +46,7 @@
   .card .lbl{font-size:1.9vmin;text-transform:uppercase;letter-spacing:.18em;color:var(--teal-hi);font-weight:800}
   .card .val{font-size:3.4vmin;font-weight:700;margin-top:.5vmin}
   .card .sub{font-size:2.3vmin;color:var(--muted);margin-top:.3vmin}
-  .classbar{display:flex;gap:1.6vmin;padding:2vmin 5vmin 3.2vmin;flex-wrap:wrap;justify-content:center}
+  .classbar{flex:none;display:flex;gap:1.6vmin;padding:2vmin 5vmin 3.2vmin;flex-wrap:wrap;justify-content:center}
   .classbtn{flex:1 1 0;min-width:22vmin;max-width:46vmin;padding:2.4vmin 2vmin;border-radius:1.4vmin;
     background:linear-gradient(180deg,#152021,#0e1516);border:1px solid var(--line);
     font-size:3vmin;font-weight:800;letter-spacing:.02em;text-align:center;position:relative}
@@ -126,8 +122,7 @@
   .toast.on{display:block}
 
   @media (max-aspect-ratio:1/1){
-    .shark{height:20vmin}
-    .program{font-size:10vmin}
+    .biglogo{height:30vh}
     .home-right{padding-left:0;align-items:center}
     .ag-body{grid-template-columns:1fr;overflow:auto}
   }
@@ -147,11 +142,7 @@
   <div class="stripe"></div>
   <div class="home-main">
     <div class="home-right">
-      <div class="title-row">
-        <img class="shark" src="assets/shark.png?v=1" alt="">
-        <div class="program" id="progName">Islands <span>Band</span></div>
-        <img class="shark flip" src="assets/shark.png?v=1" alt="">
-      </div>
+      <img class="biglogo" src="assets/ihs-band-logo-white-border.png?v=1" alt="IHS Band">
       <div class="clock" id="clock">--:--</div>
       <div class="date" id="date"></div>
       <div class="cards" id="cards"></div>
@@ -221,8 +212,8 @@
     <h2>Board settings</h2>
     <p class="hint">Changes save on this device only.</p>
     <div class="row">
-      <div><label for="sName">Name (white)</label><input id="sName"></div>
-      <div><label for="sSub">Second word (teal)</label><input id="sSub"></div>
+      <div><label for="sName">Program name (browser tab)</label><input id="sName"></div>
+      <div><label for="sSub">Second word</label><input id="sSub"></div>
     </div>
     <label for="sClasses">Classes (one per line, in button order)</label>
     <textarea id="sClasses" style="min-height:140px"></textarea>
@@ -306,7 +297,6 @@
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
 
   function renderHome(){
-    $("progName").innerHTML = esc(state.school) + (state.program ? " <span>" + esc(state.program) + "</span>" : "");
     document.title = state.school + " " + state.program;
     var cards = "";
     var ev = state.event;
