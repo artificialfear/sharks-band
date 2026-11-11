@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Islands High School Band</title>
+<title>Islands Band</title>
 <link rel="icon" href="assets/shark-logo.png?v=2">
 <style>
   :root{
@@ -35,8 +35,8 @@
   .logo-wrap{display:grid;place-items:center;height:100%}
   .logo-wrap img{max-width:92%;max-height:62vh;filter:drop-shadow(0 1.5vmin 3vmin rgba(0,0,0,.6))}
   .home-right{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2.2vmin;padding:0 2vmin}
-  .program{font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:5.6vmin;line-height:1.05}
-  .program span{display:block;color:var(--teal-hi);font-size:1.7em;letter-spacing:.3em;padding-left:.3em;margin-top:1vmin;line-height:1}
+  .program{font-weight:900;text-transform:uppercase;letter-spacing:.08em;font-size:9.5vmin;line-height:1;white-space:nowrap}
+  .program span{color:var(--teal-hi)}
   .clock{font-size:17vmin;font-weight:800;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
   .clock small{font-size:.28em;font-weight:700;color:var(--muted);margin-left:1.5vmin;letter-spacing:.05em;margin-right:-2.5em}
   .date{font-size:3.6vmin;color:var(--muted);font-weight:600}
@@ -144,7 +144,7 @@
   <div class="home-main">
     <div class="logo-wrap"><img src="assets/shark-logo.png?v=2" alt="IHS Sharks"></div>
     <div class="home-right">
-      <div class="program" id="progName">Islands High School<span>Band</span></div>
+      <div class="program" id="progName">Islands <span>Band</span></div>
       <div class="clock" id="clock">--:--</div>
       <div class="date" id="date"></div>
       <div class="cards" id="cards"></div>
@@ -214,8 +214,8 @@
     <h2>Board settings</h2>
     <p class="hint">Changes save on this device only.</p>
     <div class="row">
-      <div><label for="sName">School name</label><input id="sName"></div>
-      <div><label for="sSub">Program name</label><input id="sSub"></div>
+      <div><label for="sName">Name (white)</label><input id="sName"></div>
+      <div><label for="sSub">Second word (teal)</label><input id="sSub"></div>
     </div>
     <label for="sClasses">Classes (one per line, in button order)</label>
     <textarea id="sClasses" style="min-height:140px"></textarea>
@@ -246,7 +246,7 @@
   "use strict";
   var KEY = "sharksBand.v1";
   var DEFAULTS = {
-    school: "Islands High School",
+    school: "Islands",
     program: "Band",
     note: "",
     event: { name: "", date: "" },
@@ -299,7 +299,7 @@
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
 
   function renderHome(){
-    $("progName").innerHTML = esc(state.school) + "<span>" + esc(state.program) + "</span>";
+    $("progName").innerHTML = esc(state.school) + (state.program ? " <span>" + esc(state.program) + "</span>" : "");
     document.title = state.school + " " + state.program;
     var cards = "";
     var ev = state.event;

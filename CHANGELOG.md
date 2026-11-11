@@ -1,4 +1,7 @@
 # Changelog
+## v1.0.3 (2026-11-11)
+- The welcome title now reads ISLANDS BAND on one line, with ISLANDS in white and BAND in teal.
+
 ## v1.0.2 (2026-11-11)
 - Welcome screen: school name, BAND, clock, date and cards are now centered on one line, and BAND is much larger.
 
