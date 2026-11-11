@@ -31,3 +31,8 @@
 
 ## Testing
 `python3 tests/smoke.py --shots /tmp/shots` serves the folder, fixes the clock to Thu Nov 12 2026 at 9:41 AM, and runs settings, agenda edit, cross-off, reload persistence and timer checks. It also takes screenshots at 1920x1080 and 1180x820.
+
+## IHS BAND logo (added 2026-11-11, not yet used on the board)
+- `assets/ihs-band-logo.png`: a re-creation of the IHS Sharks badge reading "IHS BAND", with a transparent background.
+- `assets/ihs-band-logo-white-border.png`: the same logo with a thin white outer border, for dark backgrounds.
+- To rebuild, use `tools/build_logo.py`. Lettering is Anton (IHS) and Archivo Black (BAND), both from the npm packages @fontsource/anton and @fontsource/archivo-black, with the .woff converted to .ttf by fontTools into /tmp/fonts. The letters are sheared 6-7° for italic, with a white fill, a 9px teal stroke and a 26px black stroke (at 1000px). The shark is assets/shark.png at 0.714 scale, offset (140,236), matching its position in the original badge.
