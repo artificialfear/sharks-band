@@ -5,7 +5,7 @@
 
 ## Current state (v1.0)
 - Single self-contained `index.html` plus `assets/shark.png`: Mat's standalone shark (from shark.jpeg), with the white background flood-removed and the edge rim un-matted to black. The inside of the shark's curl is background in this artwork. The right-hand shark is the same file mirrored with CSS `scaleX(-1)`. A light CSS drop-shadow outline keeps the black fins visible on the dark background. The old IHS logo was removed in v1.1.0. Bump `?v=` when you replace the image.
-- Welcome screen: the IHS BAND logo (white-border version) centered above the clock, "ISLANDS BAND" (Islands in white, Band in teal, one line), a big clock and the date, a "Next up" event countdown card, a "Today" note card, and one button per class.
+- Welcome screen: the IHS BAND logo (white-border version) in the top-left corner, the ISLANDS BAND title centered above the clock, "ISLANDS BAND" (Islands in white, Band in teal, one line), a big clock and the date, a "Next up" event countdown card, a "Today" note card, and one button per class.
 - Class agenda screen: Goal, Today's Plan (numbered; tap an item to cross it off), Reminders, Home/Edit/Timer, and a warning when the agenda is from a previous day.
 - Timer overlay: presets of 1/2/3/5/10/15 min and ±1 min; plays a chime at 0:00.
 - Settings (gear icon): school and program name, class list (one per line), next event and date, welcome note, and JSON export/import.
@@ -32,7 +32,7 @@
 ## Testing
 `python3 tests/smoke.py --shots /tmp/shots` serves the folder, fixes the clock to Thu Nov 12 2026 at 9:41 AM, and runs settings, agenda edit, cross-off, reload persistence and timer checks. It also takes screenshots at 1920x1080 and 1180x820.
 
-## IHS BAND logo (added 2026-11-11; on the welcome screen since v1.2.0)
+## IHS BAND logo (added 2026-11-11; top-left of the welcome screen since v1.3.0)
 - `assets/ihs-band-logo.png`: a re-creation of the IHS Sharks badge reading "IHS BAND", with a transparent background.
 - `assets/ihs-band-logo-white-border.png`: the same logo with a thin white outer border, for dark backgrounds.
 - To rebuild, use `tools/build_logo.py`. Lettering is Anton (IHS) and Archivo Black (BAND), both from the npm packages @fontsource/anton and @fontsource/archivo-black, with the .woff converted to .ttf by fontTools into /tmp/fonts. The letters are sheared 6-7° for italic, with a white fill, a 9px teal stroke and a 26px black stroke (at 1000px). The shark is assets/shark.png at 0.714 scale, offset (140,236), matching its position in the original badge.

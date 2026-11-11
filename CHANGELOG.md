@@ -1,4 +1,8 @@
 # Changelog
+## v1.3.0 (2026-11-11)
+- ISLANDS BAND title is back, centered above the clock. The IHS BAND logo moved to the top-left corner.
+- The title and logo scale with screen width so they never overlap.
+
 ## v1.2.0 (2026-11-11)
 - The welcome screen now shows the IHS BAND logo centered above the clock, in place of the ISLANDS BAND title and the two sharks.
 - The top stripe no longer gets squeezed on shorter screens.
