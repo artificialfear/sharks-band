@@ -7,6 +7,10 @@
 <meta name="robots" content="noindex">
 <title>Islands Band Trip</title>
 <link rel="icon" href="../assets/shark.png?v=1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Band Trip">
 <style>
   :root{--bg:#07090a;--panel:#11181a;--panel2:#162022;--line:#24302f;--teal:#239692;--teal-hi:#3cc7c0;
     --text:#f3f7f7;--muted:#9db1b0;--warn:#f2c14e;--bad:#ff6b6b;--good:#4fd18b}
@@ -107,14 +111,29 @@
     <h2>First: your name</h2>
     <p class="muted small" style="margin-top:0">This goes in your check-in texts so your chaperone knows who's texting. It stays on your phone only.</p>
     <input id="sNameIn" autocomplete="name" placeholder="First and last name">
+    <label for="sBudIn">Your buddies (first names)</label>
+    <input id="sBudIn" placeholder="e.g. Maya, Chris">
     <div style="height:10px"></div>
     <button class="btn primary" id="sNameSave">Save</button>
+  </div>
+
+  <div class="card hide" id="installCard">
+    <h2>Save this page</h2>
+    <p class="small" style="margin-top:0">Once it's saved, it opens even with no signal.</p>
+    <div id="installIOS" class="small hide"><b>iPhone:</b> tap the Share button, then <b>Add to Home Screen</b>.</div>
+    <div id="installAndroid" class="small hide"><b>Android:</b> tap <b>Install</b> below, or the &#8942; menu, then <b>Add to Home screen</b>.</div>
+    <div style="height:8px"></div>
+    <button class="btn primary hide" id="installBtn">Install</button>
+    <button class="btn ghost" id="installHide" style="min-height:40px;font-size:14px">Got it, hide this</button>
   </div>
 
   <div class="card" id="nextCard">
     <h2>Next check-in</h2>
     <div class="countdown" id="cd">--</div>
     <div class="next-lbl" id="cdLbl"></div>
+    <div style="height:10px"></div>
+    <a class="btn" id="icsBtn" href="#" download="islands-band-trip.ics">&#9200; Add check-in reminders to my calendar</a>
+    <p class="muted small" style="margin:8px 0 0" id="alarmTxt"></p>
   </div>
 
   <div class="card">
@@ -127,6 +146,8 @@
 
   <div class="card">
     <h2>Need help?</h2>
+    <button class="btn" id="locBtn">&#128205; Add my location to my texts</button>
+    <p class="small muted" id="locStatus" style="margin:6px 0 10px">Your chaperone gets a map link to exactly where you are.</p>
     <a class="btn danger" id="callBtn" href="#">&#128222; Call my chaperone</a>
     <a class="btn" id="lostBtn" href="#">I'm separated from my group</a>
     <a class="btn" id="sickBtn" href="#">I'm sick or hurt</a>
@@ -157,7 +178,7 @@
     <ul class="clean" id="bring"></ul>
   </div>
 
-  <button class="btn ghost small" id="changeName" style="min-height:40px;font-size:14px">Change my name</button>
+  <button class="btn ghost small" id="changeName" style="min-height:40px;font-size:14px">Change my name or buddies</button>
 </section>
 
 <!-- =================== CHAPERONE VIEW =================== -->
@@ -186,7 +207,7 @@
       <div id="masterStatus" class="muted small" style="margin-bottom:8px"></div>
       <details id="masterDetails">
         <summary class="small" style="cursor:pointer;color:var(--teal-hi);font-weight:800">Paste or replace the roster</summary>
-        <p class="muted small">Copy the rows straight from a spreadsheet, or type one student per line: <b>Name, phone, group</b>. Phone and group are optional. First and last name in separate columns works too.</p>
+        <p class="muted small">Copy the rows straight from a spreadsheet, or type one student per line: <b>Name, phone, group</b>. Phone and group are optional. From the trip roster Google Sheet, copy the <b>Copy into trip tool</b> column, which also brings parent contacts and medical notes.</p>
         <textarea id="masterIn" placeholder="Jordan Smith, 912-555-0101, Group A&#10;Ava Jones, 912-555-0102, Group B"></textarea>
         <div style="height:8px"></div>
         <button class="btn primary" id="masterLoad">Load roster</button>
@@ -247,6 +268,7 @@
     <div id="busBanner"></div>
     <div class="card"><div class="tally" id="busTally">0/0</div><div class="muted small">on the bus</div></div>
     <div id="busList"></div>
+    <div class="card" id="busReport"></div>
     <button class="btn ghost" id="busReset">Clear this count</button>
   </div>
 
@@ -260,6 +282,7 @@
       <label for="lostWear">Wearing</label>
       <input id="lostWear" placeholder="e.g. black band hoodie, white shoes">
     </div>
+    <div class="card hide" id="lostInfo"></div>
     <div class="card">
       <h2>Do these in order</h2>
       <ol class="steps" id="lostSteps"></ol>
@@ -304,7 +327,7 @@
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="trip-config.js?v=1"></script>
+<script src="trip-config.js?v=2"></script>
 <script src="qrcode.js"></script>
 <script>
 (function(){
@@ -356,15 +379,19 @@ function scheduleHTML(){
 function student(info){
   show("student");
   var name = get("trip.student.name","");
+  var buddies = get("trip.student.buddies","");
+  var loc = get("trip.student.loc", null);
   var park = get("trip.student.park", T.parks[0]);
   $("sChap").textContent = info.c;
   $("sGroup").textContent = (info.g ? info.g + " · " : "") + info.p;
 
-  function askName(){ $("nameCard").classList.remove("hide"); $("sNameIn").value = name; }
+  function askName(){ $("nameCard").classList.remove("hide"); $("sNameIn").value = name; $("sBudIn").value = buddies; }
   if (!name) askName();
   $("sNameSave").onclick = function(){
     var v = $("sNameIn").value.trim(); if (!v) { $("sNameIn").focus(); return; }
-    name = v; put("trip.student.name", v); $("nameCard").classList.add("hide"); refreshLinks(); toast("Saved");
+    name = v; put("trip.student.name", v);
+    buddies = $("sBudIn").value.trim(); put("trip.student.buddies", buddies);
+    $("nameCard").classList.add("hide"); refreshLinks(); toast("Saved");
   };
   $("changeName").onclick = function(){ askName(); window.scrollTo(0,0); };
 
@@ -376,13 +403,81 @@ function student(info){
   };
 
   function who(){ return name || "(name)"; }
-  function refreshLinks(){
-    $("checkBtn").href = smsHref(info.p, "✅ Check-in: " + who() + " at " + nowStr() + ". In " + park + ". All good.");
-    $("callBtn").href  = telHref(info.p);
-    $("lostBtn").href  = smsHref(info.p, "⚠️ " + who() + ": I'm separated from my group. I'm in " + park + " near: ");
-    $("sickBtn").href  = smsHref(info.p, "🩹 " + who() + ": I'm sick or hurt. I'm in " + park + " near: ");
-    $("otherBtn").href = smsHref(info.p, who() + ": ");
+  function withBuddies(){ return who() + (buddies ? " (with " + buddies + ")" : ""); }
+  function locText(){
+    if (!loc) return "";
+    var age = (Date.now() - loc.t) / 60000;
+    var d = new Date(loc.t), h = d.getHours()%12||12, ts = h+":"+pad(d.getMinutes())+(d.getHours()<12?" AM":" PM");
+    return " My location" + (age > 10 ? " at " + ts : "") + ": https://maps.google.com/?q=" + loc.lat.toFixed(5) + "," + loc.lon.toFixed(5);
   }
+  function refreshLinks(){
+    var L = locText();
+    $("checkBtn").href = smsHref(info.p, "✅ Check-in: " + withBuddies() + " at " + nowStr() + ". In " + park + ". All good." + L);
+    $("callBtn").href  = telHref(info.p);
+    $("lostBtn").href  = smsHref(info.p, "⚠️ " + who() + ": I'm separated from my group. I'm in " + park + "." + L + " Near: ");
+    $("sickBtn").href  = smsHref(info.p, "🩹 " + who() + ": I'm sick or hurt. I'm in " + park + "." + L + " Near: ");
+    $("otherBtn").href = smsHref(info.p, who() + ":" + L + " ");
+    renderLoc();
+  }
+  function renderLoc(){
+    if (!loc) return;
+    var mins = Math.round((Date.now() - loc.t) / 60000);
+    $("locStatus").textContent = "✔ Location added to your texts (" + (mins < 1 ? "just now" : mins + " min ago") + ", within about " + Math.round(loc.acc) + " m)." + (mins > 10 ? " Tap again to update it." : "");
+    $("locBtn").innerHTML = "&#128205; Update my location";
+  }
+  $("locBtn").onclick = function(){
+    if (!navigator.geolocation){ $("locStatus").textContent = "This phone can't share location here. Describe where you are in your text."; return; }
+    $("locStatus").textContent = "Finding you… (tap Allow if your phone asks)";
+    navigator.geolocation.getCurrentPosition(function(pos){
+      loc = {lat:pos.coords.latitude, lon:pos.coords.longitude, acc:pos.coords.accuracy, t:Date.now()};
+      put("trip.student.loc", loc); refreshLinks(); toast("Location added");
+    }, function(err){
+      $("locStatus").textContent = err.code === 1 ? "Location is blocked. Turn on Location for your browser in Settings, or describe where you are in your text."
+        : "Couldn't get your location right now. Try again in a moment, or describe where you are.";
+    }, {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
+  };
+
+  // calendar reminders (.ics with alerts 5 min before and at the time)
+  function icsEsc(t){ return String(t).replace(/\\/g,"\\\\").replace(/([,;])/g,"\\$1").replace(/\n/g,"\\n"); }
+  function icsTime(d){ return d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,""); }
+  function buildICS(){
+    var ev = [];
+    T.checkins.forEach(function(c){ var d = at(c.time); if (d) ev.push({d:d, title: c.inPerson ? "Band trip: meet " + info.c + " in person" + (c.place ? " (" + c.place + ")" : "") : "Band trip: text your check-in to " + info.c}); });
+    T.schedule.forEach(function(it){ var d = at(it.time); if (d && it.remind) ev.push({d:d, title:"Band trip: " + it.what}); });
+    var L = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Islands Band//Trip//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH"];
+    var stamp = icsTime(new Date());
+    ev.forEach(function(e,i){
+      L.push("BEGIN:VEVENT","UID:islands-band-trip-"+T.date+"-"+i+"@sharks-band","DTSTAMP:"+stamp,
+        "DTSTART:"+icsTime(e.d),"DTEND:"+icsTime(new Date(e.d.getTime()+10*60000)),"SUMMARY:"+icsEsc(e.title),
+        "DESCRIPTION:"+icsEsc("Open your trip page: " + location.href),
+        "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(e.title),"TRIGGER:-PT5M","END:VALARM",
+        "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(e.title),"TRIGGER:PT0M","END:VALARM",
+        "END:VEVENT");
+    });
+    L.push("END:VCALENDAR");
+    return {text: L.join("\r\n") + "\r\n", count: ev.length};
+  }
+  window.__buildICS = buildICS;
+  (function(){
+    var ics = buildICS();
+    try { $("icsBtn").href = URL.createObjectURL(new Blob([ics.text], {type:"text/calendar"})); }
+    catch(e){ $("icsBtn").href = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics.text); }
+    var times = T.checkins.map(function(c){ var d = at(c.time); if (!d) return null; d = new Date(d.getTime()-5*60000); var h=d.getHours()%12||12; return h+":"+pad(d.getMinutes()); }).filter(Boolean);
+    $("alarmTxt").textContent = "If that doesn't work on your phone, set Clock alarms for: " + times.join(", ") + ".";
+  })();
+
+  // install / save-to-home-screen card
+  (function(){
+    var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
+    if (standalone || get("trip.student.installHidden", false)) return;
+    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    $("installCard").classList.remove("hide");
+    $(ios ? "installIOS" : "installAndroid").classList.remove("hide");
+    var deferred = null;
+    window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); deferred = e; $("installBtn").classList.remove("hide"); });
+    $("installBtn").onclick = function(){ if (!deferred) return; deferred.prompt(); deferred = null; this.classList.add("hide"); };
+    $("installHide").onclick = function(){ put("trip.student.installHidden", true); $("installCard").classList.add("hide"); };
+  })();
   // check-in time inside the text should be the time of tapping
   ["checkBtn","lostBtn","sickBtn","otherBtn"].forEach(function(id){
     $(id).addEventListener("click", function(e){ if(!name){ e.preventDefault(); askName(); window.scrollTo(0,0); toast("Add your name first"); return; } refreshLinks(); }, true);
@@ -466,9 +561,14 @@ function chaperone(){
     var out = [];
     String(txt||"").split(/\r?\n/).forEach(function(line){
       if (!line.trim()) return;
+      if (line.indexOf("|") > -1){   // from the Google Sheet: Name | Cell | Group | Parent | Parent phone | Medical
+        var f = line.split("|").map(function(c){return c.trim();});
+        if (f[0] && !/^copy into/i.test(f[0])) out.push({n:f[0], p:f[1]||"", g:f[2]||"", pn:f[3]||"", pp:f[4]||"", m:f[5]||""});
+        return;
+      }
       var cols = (line.indexOf("\t") > -1 ? line.split("\t") : line.split(",")).map(function(c){return c.trim();}).filter(Boolean);
       if (!cols.length) return;
-      if (/^(student|name|first)/i.test(cols[0]) && !looksPhone(line)) return;   // header row
+      if (/^(student|name|first|copy into)/i.test(cols[0]) && !looksPhone(line)) return;   // header row
       var phone = "", group = "", names = [];
       cols.forEach(function(c){
         if (!phone && looksPhone(c)) phone = c;
@@ -596,6 +696,12 @@ function chaperone(){
     if (!parseLines(S.backups).length) h += '<p class="muted small">Add the other chaperones on the Setup tab to get alert buttons here.</p>';
     h += '<a class="btn" href="tel:911" style="margin-top:8px">Call 911</a>';
     $("lostActions").innerHTML = h;
+    var mm = master.filter(function(x){ return x.n === S.lost.who; })[0];
+    var info = "";
+    if (mm && (mm.pn || mm.pp)) info += '<h2>Parent / guardian</h2><div style="font-weight:800;margin-bottom:8px">'+esc(mm.pn||"Parent")+(mm.pp?' <span class="muted small">'+esc(mm.pp)+'</span>':'')+'</div>' +
+      (mm.pp ? '<div class="row" style="margin-bottom:6px"><a class="btn" href="'+telHref(mm.pp)+'">Call parent</a><a class="btn" href="'+smsHref(mm.pp,"")+'">Text</a></div>' : "");
+    if (mm && mm.m) info += '<h2 style="margin-top:10px">Medical / allergy</h2><div style="color:var(--warn);font-weight:700">'+esc(mm.m)+'</div>';
+    $("lostInfo").innerHTML = info; $("lostInfo").classList.toggle("hide", !info);
   }
 
   function nameRows(map, now, deadline){
@@ -619,6 +725,12 @@ function chaperone(){
     $("busTally").textContent = on + "/" + R.length;
     $("busBanner").innerHTML = R.length ? (on===R.length ? '<div class="banner good">Everyone is here ✔</div>' : '<div class="banner bad">Missing: '+esc(R.filter(function(s){return !bm[s.n];}).map(function(s){return s.n;}).join(", "))+'</div>') : "";
     $("busList").innerHTML = nameRows(bm, now, null);
+    var bl = BUS.filter(function(x){return x.k===busKey;})[0].l, missing = R.filter(function(s){return !bm[s.n];}).map(function(s){return s.n;});
+    var rpt = "🚌 " + (S.group||"My group") + " (" + (S.name||"chaperone") + ") — " + bl + ": " + on + "/" + R.length +
+      (missing.length ? ". Missing: " + missing.join(", ") : ". All here ✔");
+    var BB = parseLines(S.backups).filter(function(b){return b.p;});
+    $("busReport").innerHTML = '<h2>Send this count</h2><div class="small muted" style="margin-bottom:8px">'+esc(rpt)+'</div>' +
+      (BB.length ? BB.map(function(b){ return '<a class="btn" href="'+smsHref(b.p, rpt)+'">Text to '+esc(b.n)+'</a>'; }).join("") : '<p class="muted small" style="margin:0">Add the other chaperones on the Setup tab to send this.</p>');
     // lost
     $("lostWho").innerHTML = '<option value="">Choose a student…</option>' + R.map(function(s){return '<option'+(s.n===S.lost.who?" selected":"")+'>'+esc(s.n)+'</option>';}).join("");
     $("lostWhere").value = S.lost.where||""; $("lostWear").value = S.lost.wear||"";
@@ -636,10 +748,17 @@ function chaperone(){
 function route(){
   var h = location.hash || "";
   if (h.indexOf("#s=") === 0){
-    try { var info = dec(h.slice(3)); if (!info.c || !info.p) throw 0; student(info); } catch(e){ show("bad"); }
-  } else if (h.indexOf("#chap") === 0) chaperone();
-  else show("landing");
+    try { var info = dec(h.slice(3)); if (!info.c || !info.p) throw 0; put("trip.student.info", info); put("trip.mode", "student"); student(info); } catch(e){ show("bad"); }
+  } else if (h.indexOf("#chap") === 0){ put("trip.mode", "chap"); chaperone(); }
+  else {
+    // opened from the home screen or with no #: reopen whatever this phone used last
+    var mode = get("trip.mode", ""), saved = get("trip.student.info", null);
+    if (mode === "student" && saved && saved.p) student(saved);
+    else if (mode === "chap") chaperone();
+    else show("landing");
+  }
 }
+if ("serviceWorker" in navigator) { window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
 window.addEventListener("hashchange", function(){ location.reload(); });
 route();
 })();

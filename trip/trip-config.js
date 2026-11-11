@@ -24,7 +24,7 @@ window.TRIP = {
     { time: "TBD", what: "Buses leave for Orlando" },
     { time: "TBD", what: "Arrive at Universal, meet your chaperone at the bus" },
     { time: "13:00", what: "Lunch meetup with your chaperone (in person)" },
-    { time: "TBD", what: "Meet at the buses to leave. Be EARLY." },
+    { time: "TBD", what: "Meet at the buses to leave. Be EARLY.", remind: true },   // remind: true = added to the calendar reminders
     { time: "TBD", what: "Arrive back at Islands High School" }
   ],
 
