@@ -1,4 +1,7 @@
 # Changelog
+## v1.0.4 (2026-11-11)
+- Smaller logo. The title, clock, date and cards are now centered on the screen, and AM no longer pushes the time off-center.
+
 ## v1.0.3 (2026-11-11)
 - The welcome title now reads ISLANDS BAND on one line, with ISLANDS in white and BAND in teal.
 
