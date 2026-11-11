@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Islands High School Band</title>
+<link rel="icon" href="assets/shark-logo.png?v=1">
+<style>
+  :root{
+    --bg:#07090a; --panel:#101516; --panel2:#151c1d; --line:#24302f;
+    --teal:#239692; --teal-hi:#3cc7c0; --teal-dim:#16605d;
+    --text:#f3f7f7; --muted:#9db1b0; --warn:#f2c14e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;overflow:hidden;
+    -webkit-user-select:none;user-select:none}
+  button{font:inherit;color:inherit;cursor:pointer;border:none;background:none;-webkit-tap-highlight-color:transparent}
+  .screen{position:fixed;inset:0;display:none;flex-direction:column}
+  .screen.on{display:flex}
+
+  /* corner controls */
+  .corner{position:fixed;top:1.2vmin;right:1.2vmin;display:flex;gap:1vmin;z-index:20;opacity:.45;transition:opacity .2s}
+  .corner:hover,.corner:focus-within{opacity:1}
+  .iconbtn{width:5.2vmin;height:5.2vmin;min-width:44px;min-height:44px;border-radius:50%;background:var(--panel2);
+    border:1px solid var(--line);display:grid;place-items:center;font-size:2.4vmin}
+  .iconbtn svg{width:55%;height:55%;fill:none;stroke:var(--text);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ---------- welcome ---------- */
+  #home{background:
+      radial-gradient(ellipse at 18% 45%, rgba(35,150,146,.28), transparent 55%),
+      linear-gradient(180deg,#07090a 0%,#0a1112 100%)}
+  .stripe{height:1.1vmin;background:var(--teal);box-shadow:0 .5vmin 0 0 #0b0f10,0 .8vmin 0 0 rgba(255,255,255,.85)}
+  .home-main{flex:1;display:grid;grid-template-columns:42% 58%;align-items:center;padding:3vmin 5vmin 1vmin}
+  .logo-wrap{display:grid;place-items:center;height:100%}
+  .logo-wrap img{max-width:92%;max-height:62vh;filter:drop-shadow(0 1.5vmin 3vmin rgba(0,0,0,.6))}
+  .home-right{display:flex;flex-direction:column;gap:2.2vmin;padding-left:2vmin}
+  .program{font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:5.6vmin;line-height:1.05}
+  .program span{display:block;color:var(--teal-hi);font-size:.62em;letter-spacing:.32em;margin-top:.5vmin}
+  .clock{font-size:17vmin;font-weight:800;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .clock small{font-size:.28em;font-weight:700;color:var(--muted);margin-left:1.5vmin;letter-spacing:.05em}
+  .date{font-size:3.6vmin;color:var(--muted);font-weight:600}
+  .cards{display:flex;gap:2vmin;flex-wrap:wrap}
+  .card{background:rgba(16,21,22,.85);border:1px solid var(--line);border-left:.7vmin solid var(--teal);
+    border-radius:1.2vmin;padding:1.6vmin 2.4vmin;min-width:30vmin;max-width:100%}
+  .card .lbl{font-size:1.9vmin;text-transform:uppercase;letter-spacing:.18em;color:var(--teal-hi);font-weight:800}
+  .card .val{font-size:3.4vmin;font-weight:700;margin-top:.5vmin}
+  .card .sub{font-size:2.3vmin;color:var(--muted);margin-top:.3vmin}
+  .classbar{display:flex;gap:1.6vmin;padding:2vmin 5vmin 3.2vmin;flex-wrap:wrap;justify-content:center}
+  .classbtn{flex:1 1 0;min-width:22vmin;max-width:46vmin;padding:2.4vmin 2vmin;border-radius:1.4vmin;
+    background:linear-gradient(180deg,#152021,#0e1516);border:1px solid var(--line);
+    font-size:3vmin;font-weight:800;letter-spacing:.02em;text-align:center;position:relative}
+  .classbtn:active{transform:scale(.98);background:var(--teal-dim)}
+  .classbtn .dot{display:block;font-size:1.7vmin;font-weight:600;color:var(--muted);margin-top:.6vmin;letter-spacing:.06em}
+  .classbtn.fresh .dot{color:var(--teal-hi)}
+
+  /* ---------- agenda ---------- */
+  #agenda{background:linear-gradient(180deg,#0a1112,#07090a)}
+  .ag-head{display:flex;align-items:center;gap:2.4vmin;padding:2.4vmin 16vmin 2vmin 4vmin;border-bottom:1px solid var(--line)}
+  .ag-head img{height:9vmin}
+  .ag-title{font-size:6vmin;font-weight:900;letter-spacing:.01em;line-height:1}
+  .ag-date{font-size:2.6vmin;color:var(--muted);font-weight:600;margin-top:.6vmin}
+  .ag-clock{margin-left:auto;font-size:6vmin;font-weight:800;font-variant-numeric:tabular-nums}
+  .ag-body{flex:1;display:grid;grid-template-columns:1.65fr 1fr;gap:3vmin;padding:3vmin 4vmin;min-height:0}
+  .plan{background:var(--panel);border:1px solid var(--line);border-radius:1.6vmin;padding:2.4vmin 3vmin;overflow:auto}
+  .sec-lbl{font-size:2vmin;text-transform:uppercase;letter-spacing:.2em;color:var(--teal-hi);font-weight:800;margin-bottom:1.4vmin}
+  .plan ol{margin:0;padding:0;list-style:none;counter-reset:n}
+  .plan li{counter-increment:n;display:flex;gap:2vmin;align-items:flex-start;font-size:4vmin;font-weight:600;
+    padding:1.2vmin 0;border-bottom:1px dashed var(--line);line-height:1.2}
+  .plan li:last-child{border-bottom:none}
+  .plan li::before{content:counter(n);flex:none;width:5.4vmin;height:5.4vmin;border-radius:50%;background:var(--teal);
+    color:#041011;display:grid;place-items:center;font-weight:900;font-size:3vmin;margin-top:.1vmin}
+  .plan li.done{color:var(--muted)}
+  .plan li.done span{text-decoration:line-through;text-decoration-color:var(--teal)}
+  .plan li.done::before{background:var(--line);color:var(--muted)}
+  .side{display:flex;flex-direction:column;gap:3vmin;min-height:0}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:1.6vmin;padding:2.2vmin 2.6vmin}
+  .box.goal{border-left:.8vmin solid var(--teal)}
+  .box .txt{font-size:3.4vmin;font-weight:700;line-height:1.25;white-space:pre-wrap}
+  .box ul{margin:0;padding-left:3vmin}
+  .box li{font-size:3vmin;font-weight:600;margin:.6vmin 0;line-height:1.25}
+  .empty{color:var(--muted);font-style:italic;font-weight:500}
+  .ag-foot{display:flex;gap:1.6vmin;padding:0 4vmin 3vmin;align-items:center}
+  .pill{padding:1.6vmin 2.8vmin;border-radius:99px;background:var(--panel2);border:1px solid var(--line);
+    font-size:2.4vmin;font-weight:700;display:flex;gap:1vmin;align-items:center;min-height:44px}
+  .pill.primary{background:var(--teal);color:#041011;border-color:var(--teal)}
+  .pill:active{transform:scale(.97)}
+  .stale{margin-left:auto;font-size:2vmin;color:var(--warn);font-weight:600}
+
+  /* ---------- timer ---------- */
+  #timer{position:fixed;inset:0;background:rgba(3,5,6,.94);z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;gap:4vmin}
+  #timer.on{display:flex}
+  .t-big{font-size:30vmin;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+  .t-big.end{color:var(--teal-hi);animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .t-label{font-size:3vmin;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;font-weight:800}
+  .t-presets,.t-ctrls{display:flex;gap:1.6vmin;flex-wrap:wrap;justify-content:center}
+  .t-presets .pill{font-size:3vmin}
+
+  /* ---------- modals ---------- */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:50;display:none;align-items:center;justify-content:center;padding:2vmin}
+  .modal.on{display:flex}
+  .sheet{background:#0f1415;border:1px solid var(--line);border-radius:14px;width:min(900px,96vw);max-height:92vh;overflow:auto;
+    padding:22px 26px;-webkit-user-select:text;user-select:text}
+  .sheet h2{margin:0 0 4px;font-size:24px}
+  .sheet .hint{color:var(--muted);font-size:14px;margin:0 0 14px}
+  .sheet label{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.14em;color:var(--teal-hi);font-weight:800;margin:14px 0 6px}
+  .sheet input,.sheet textarea{width:100%;background:#070a0b;color:var(--text);border:1px solid var(--line);border-radius:8px;
+    padding:12px;font:inherit;font-size:18px}
+  .sheet textarea{min-height:120px;resize:vertical;line-height:1.35}
+  .sheet input:focus,.sheet textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>div{flex:1 1 220px}
+  .actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+  .btn{padding:12px 20px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);font-weight:700;font-size:16px;min-height:44px}
+  .btn.primary{background:var(--teal);color:#041011;border-color:var(--teal)}
+  .btn.danger{color:#ff8a80}
+  .spacer{flex:1}
+  .note{font-size:13px;color:var(--muted);margin-top:16px;line-height:1.45}
+  .toast{position:fixed;bottom:3vmin;left:50%;transform:translateX(-50%);background:var(--teal);color:#041011;font-weight:800;
+    padding:12px 22px;border-radius:99px;z-index:60;display:none;font-size:18px}
+  .toast.on{display:block}
+
+  @media (max-aspect-ratio:1/1){
+    .home-main{grid-template-columns:1fr;grid-template-rows:auto auto;text-align:center}
+    .logo-wrap img{max-height:30vh}
+    .home-right{padding-left:0;align-items:center}
+    .ag-body{grid-template-columns:1fr;overflow:auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="corner">
+  <button class="iconbtn" id="fsBtn" title="Full screen" aria-label="Full screen">
+    <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  <button class="iconbtn" id="setBtn" title="Settings" aria-label="Settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+</div>
+
+<!-- WELCOME -->
+<section class="screen on" id="home">
+  <div class="stripe"></div>
+  <div class="home-main">
+    <div class="logo-wrap"><img src="assets/shark-logo.png?v=1" alt="IHS Sharks"></div>
+    <div class="home-right">
+      <div class="program" id="progName">Islands High School<span>Band</span></div>
+      <div class="clock" id="clock">--:--</div>
+      <div class="date" id="date"></div>
+      <div class="cards" id="cards"></div>
+    </div>
+  </div>
+  <div class="classbar" id="classbar"></div>
+</section>
+
+<!-- AGENDA -->
+<section class="screen" id="agenda">
+  <div class="ag-head">
+    <img src="assets/shark-logo.png?v=1" alt="">
+    <div><div class="ag-title" id="agTitle"></div><div class="ag-date" id="agDate"></div></div>
+    <div class="ag-clock" id="agClock"></div>
+  </div>
+  <div class="ag-body">
+    <div class="plan"><div class="sec-lbl">Today's Plan</div><ol id="agPlan"></ol></div>
+    <div class="side">
+      <div class="box goal"><div class="sec-lbl">Goal</div><div class="txt" id="agGoal"></div></div>
+      <div class="box"><div class="sec-lbl">Reminders</div><ul id="agRem"></ul></div>
+    </div>
+  </div>
+  <div class="ag-foot">
+    <button class="pill primary" id="homeBtn">&#8592; Home</button>
+    <button class="pill" id="editBtn">&#9998; Edit</button>
+    <button class="pill" id="timerBtn">&#9201; Timer</button>
+    <span class="stale" id="agStale"></span>
+  </div>
+</section>
+
+<!-- TIMER -->
+<div id="timer">
+  <div class="t-label" id="tLabel">Timer</div>
+  <div class="t-big" id="tBig">0:00</div>
+  <div class="t-presets" id="tPresets"></div>
+  <div class="t-ctrls">
+    <button class="pill" id="tMinus">&#8722; 1 min</button>
+    <button class="pill primary" id="tToggle">Start</button>
+    <button class="pill" id="tPlus">+ 1 min</button>
+    <button class="pill" id="tClose">Close</button>
+  </div>
+</div>
+
+<!-- EDIT AGENDA -->
+<div class="modal" id="editModal">
+  <div class="sheet">
+    <h2 id="editHead">Edit agenda</h2>
+    <p class="hint">One item per line. Tap a plan item on the board to cross it off during class.</p>
+    <label for="eGoal">Goal</label>
+    <textarea id="eGoal" style="min-height:70px" placeholder="e.g. Clean m. 41–58 of the opener"></textarea>
+    <label for="ePlan">Today's plan</label>
+    <textarea id="ePlan" style="min-height:170px" placeholder="Warm-up: B-flat scale + chorale&#10;Sight-reading&#10;Opener m. 41–58&#10;Pack up"></textarea>
+    <label for="eRem">Reminders</label>
+    <textarea id="eRem" style="min-height:90px" placeholder="Bring a pencil&#10;Uniform fittings Thursday"></textarea>
+    <div class="actions">
+      <button class="btn danger" id="eClear">Clear</button>
+      <span class="spacer"></span>
+      <button class="btn" id="eCancel">Cancel</button>
+      <button class="btn primary" id="eSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="modal" id="setModal">
+  <div class="sheet">
+    <h2>Board settings</h2>
+    <p class="hint">Changes save on this device only.</p>
+    <div class="row">
+      <div><label for="sName">School name</label><input id="sName"></div>
+      <div><label for="sSub">Program name</label><input id="sSub"></div>
+    </div>
+    <label for="sClasses">Classes (one per line, in button order)</label>
+    <textarea id="sClasses" style="min-height:140px"></textarea>
+    <div class="row">
+      <div><label for="sEvName">Next event</label><input id="sEvName" placeholder="e.g. Winter Concert"></div>
+      <div><label for="sEvDate">Event date</label><input id="sEvDate" type="date"></div>
+    </div>
+    <label for="sNote">Welcome screen note</label>
+    <input id="sNote" placeholder="e.g. Grab your folder and get set up!">
+    <div class="actions">
+      <button class="btn" id="sExport">Export backup</button>
+      <button class="btn" id="sImport">Import backup</button>
+      <input type="file" id="sFile" accept=".json,application/json" hidden>
+      <span class="spacer"></span>
+      <button class="btn" id="sCancel">Cancel</button>
+      <button class="btn primary" id="sSave">Save</button>
+    </div>
+    <p class="note">Everything is stored in this browser. An agenda typed on the laptop won't show on the Viewboard, and the reverse is also true.
+      To move everything to another device, use <b>Export backup</b> here and <b>Import backup</b> there.
+      Renaming a class (same line) keeps its agenda. Deleting a line deletes that class's agenda.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "sharksBand.v1";
+  var DEFAULTS = {
+    school: "Islands High School",
+    program: "Band",
+    note: "",
+    event: { name: "", date: "" },
+    classes: [
+      { name: "Band" },
+      { name: "Jazz Band" },
+      { name: "Music Appreciation" },
+      { name: "AP Music Theory" }
+    ]
+  };
+  var $ = function(id){ return document.getElementById(id); };
+
+  // ---------- storage ----------
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function normClass(c){
+    return { name: String(c.name || "Class"), goal: c.goal || "", plan: c.plan || [], reminders: c.reminders || [],
+             done: c.done || [], updated: c.updated || "" };
+  }
+  function load(){
+    var d = null;
+    try { d = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+    if (!d || !Array.isArray(d.classes)) d = clone(DEFAULTS);
+    d.event = d.event || { name:"", date:"" };
+    d.classes = d.classes.map(normClass);
+    return d;
+  }
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(state)); return true; }
+    catch(e) { toast("Couldn't save on this device"); return false; }
+  }
+  var state = load();
+  var current = -1;
+
+  // ---------- time helpers ----------
+  var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  function todayKey(d){ d = d || new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+  function pad(n){ return (n<10?"0":"")+n; }
+  function fmtTime(d){ var h=d.getHours()%12||12; return h+":"+pad(d.getMinutes()); }
+  function ampm(d){ return d.getHours()<12?"AM":"PM"; }
+  function fmtDate(d){ return DAYS[d.getDay()]+", "+MONTHS[d.getMonth()]+" "+d.getDate(); }
+  function parseKey(k){ var p=k.split("-"); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function daysUntil(k){
+    var t=new Date(); t.setHours(0,0,0,0);
+    return Math.round((parseKey(k)-t)/86400000);
+  }
+  function shortDay(k){ var d=parseKey(k); return DAYS[d.getDay()].slice(0,3)+" "+(d.getMonth()+1)+"/"+d.getDate(); }
+
+  // ---------- render ----------
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+
+  function renderHome(){
+    $("progName").innerHTML = esc(state.school) + "<span>" + esc(state.program) + "</span>";
+    document.title = state.school + " " + state.program;
+    var cards = "";
+    var ev = state.event;
+    if (ev && ev.name && ev.date){
+      var n = daysUntil(ev.date);
+      if (n >= 0){
+        var when = n===0 ? "Today!" : n===1 ? "Tomorrow" : n+" days";
+        cards += '<div class="card"><div class="lbl">Next up</div><div class="val">'+esc(ev.name)+
+                 '</div><div class="sub">'+when+' &middot; '+shortDay(ev.date)+'</div></div>';
+      }
+    }
+    if (state.note){
+      cards += '<div class="card"><div class="lbl">Today</div><div class="val">'+esc(state.note)+'</div></div>';
+    }
+    $("cards").innerHTML = cards;
+
+    var tk = todayKey();
+    $("classbar").innerHTML = state.classes.map(function(c,i){
+      var fresh = c.updated === tk;
+      var tag = fresh ? "Today's agenda ready" : (c.plan.length ? "Last set "+shortDay(c.updated||tk) : "No agenda yet");
+      return '<button class="classbtn'+(fresh?" fresh":"")+'" data-i="'+i+'">'+esc(c.name)+
+             '<span class="dot">'+tag+'</span></button>';
+    }).join("");
+  }
+
+  function renderAgenda(){
+    var c = state.classes[current]; if (!c) return;
+    var now = new Date();
+    $("agTitle").textContent = c.name;
+    $("agDate").textContent = fmtDate(now);
+    $("agGoal").innerHTML = c.goal ? esc(c.goal) : '<span class="empty">Tap Edit to add a goal</span>';
+    $("agPlan").innerHTML = c.plan.length
+      ? c.plan.map(function(t,i){ return '<li data-i="'+i+'" class="'+(c.done.indexOf(i)>-1?"done":"")+'"><span>'+esc(t)+'</span></li>'; }).join("")
+      : '<li class="empty" style="list-style:none">Tap Edit to add today\'s plan</li>';
+    $("agRem").innerHTML = c.reminders.length
+      ? c.reminders.map(function(t){ return "<li>"+esc(t)+"</li>"; }).join("")
+      : '<li class="empty" style="list-style:none;margin-left:-3vmin">None</li>';
+    $("agStale").textContent = (c.plan.length && c.updated && c.updated !== todayKey())
+      ? "This agenda is from "+shortDay(c.updated) : "";
+  }
+
+  function show(id){
+    ["home","agenda"].forEach(function(s){ $(s).classList.toggle("on", s===id); });
+  }
+  function openClass(i){ current = i; renderAgenda(); show("agenda"); }
+  function goHome(){ current = -1; renderHome(); show("home"); }
+
+  // ---------- clock ----------
+  function tick(){
+    var d = new Date();
+    $("clock").innerHTML = fmtTime(d) + "<small>" + ampm(d) + "</small>";
+    $("date").textContent = fmtDate(d);
+    $("agClock").textContent = fmtTime(d);
+    if (d.getHours()===0 && d.getMinutes()===0 && d.getSeconds()<2) { renderHome(); if (current>-1) renderAgenda(); }
+  }
+
+  // ---------- events ----------
+  $("classbar").addEventListener("click", function(e){
+    var b = e.target.closest(".classbtn"); if (b) openClass(+b.dataset.i);
+  });
+  $("homeBtn").onclick = goHome;
+  $("agPlan").addEventListener("click", function(e){
+    var li = e.target.closest("li[data-i]"); if (!li) return;
+    var c = state.classes[current], i = +li.dataset.i, k = c.done.indexOf(i);
+    if (k>-1) c.done.splice(k,1); else c.done.push(i);
+    save(); renderAgenda();
+  });
+
+  // edit agenda
+  $("editBtn").onclick = function(){
+    var c = state.classes[current];
+    $("editHead").textContent = "Edit agenda: " + c.name;
+    $("eGoal").value = c.goal;
+    $("ePlan").value = c.plan.join("\n");
+    $("eRem").value = c.reminders.join("\n");
+    $("editModal").classList.add("on");
+  };
+  function lines(v){ return v.split("\n").map(function(s){return s.trim();}).filter(Boolean); }
+  $("eSave").onclick = function(){
+    var c = state.classes[current];
+    var newPlan = lines($("ePlan").value);
+    if (newPlan.join("\n") !== c.plan.join("\n")) c.done = [];
+    c.goal = $("eGoal").value.trim(); c.plan = newPlan; c.reminders = lines($("eRem").value);
+    c.updated = todayKey();
+    if (save()) toast("Saved");
+    $("editModal").classList.remove("on"); renderAgenda();
+  };
+  $("eClear").onclick = function(){ $("eGoal").value=""; $("ePlan").value=""; $("eRem").value=""; };
+  $("eCancel").onclick = function(){ $("editModal").classList.remove("on"); };
+
+  // settings
+  $("setBtn").onclick = function(){
+    $("sName").value = state.school; $("sSub").value = state.program;
+    $("sClasses").value = state.classes.map(function(c){return c.name;}).join("\n");
+    $("sEvName").value = state.event.name || ""; $("sEvDate").value = state.event.date || "";
+    $("sNote").value = state.note || "";
+    $("setModal").classList.add("on");
+  };
+  $("sCancel").onclick = function(){ $("setModal").classList.remove("on"); };
+  $("sSave").onclick = function(){
+    state.school = $("sName").value.trim() || DEFAULTS.school;
+    state.program = $("sSub").value.trim();
+    var names = lines($("sClasses").value);
+    if (!names.length) names = ["Band"];
+    // keep agendas by position, so renaming a line keeps its agenda
+    var old = state.classes;
+    state.classes = names.map(function(n,i){
+      var byName = old.filter(function(c){return c.name===n;})[0];
+      var pos = old[i] && names.indexOf(old[i].name) === -1 ? old[i] : null;
+      var base = byName || pos || {};
+      var c = normClass(base); c.name = n; return c;
+    });
+    state.event = { name: $("sEvName").value.trim(), date: $("sEvDate").value };
+    state.note = $("sNote").value.trim();
+    if (save()) toast("Settings saved");
+    $("setModal").classList.remove("on");
+    if (current >= state.classes.length) current = -1;
+    current > -1 ? renderAgenda() : renderHome();
+    renderHome();
+  };
+  $("sExport").onclick = function(){
+    var blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "sharks-band-board-"+todayKey()+".json";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  $("sImport").onclick = function(){ $("sFile").click(); };
+  $("sFile").onchange = function(){
+    var f = this.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try {
+        var d = JSON.parse(r.result);
+        if (!Array.isArray(d.classes)) throw 0;
+        d.classes = d.classes.map(normClass); d.event = d.event || {name:"",date:""};
+        state = d; save(); $("setModal").classList.remove("on"); goHome(); toast("Backup imported");
+      } catch(e){ toast("That file isn't a board backup"); }
+    };
+    r.readAsText(f); this.value = "";
+  };
+
+  // full screen + keep awake
+  $("fsBtn").onclick = function(){
+    var el = document.documentElement;
+    try {
+      if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen();
+      else if (document.exitFullscreen) document.exitFullscreen();
+    } catch(e){}
+    wake();
+  };
+  var lock = null;
+  function wake(){
+    try { if ("wakeLock" in navigator && !lock) navigator.wakeLock.request("screen").then(function(l){ lock=l; l.addEventListener("release",function(){lock=null;}); }).catch(function(){}); } catch(e){}
+  }
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) wake(); });
+
+  // ---------- timer ----------
+  var tTotal = 300, tLeft = 300, tRun = false, tEnd = 0, tInt = null;
+  [1,2,3,5,10,15].forEach(function(m){
+    var b = document.createElement("button"); b.className="pill"; b.textContent = m+" min";
+    b.onclick = function(){ setTimer(m*60); }; $("tPresets").appendChild(b);
+  });
+  function fmtT(s){ s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+":"+pad(s%60); }
+  function drawT(){
+    $("tBig").textContent = fmtT(tLeft);
+    $("tBig").classList.toggle("end", tLeft<=0);
+    $("tToggle").textContent = tRun ? "Pause" : (tLeft<=0 ? "Restart" : "Start");
+  }
+  function setTimer(s){ stopT(); tTotal=tLeft=s; drawT(); }
+  function stopT(){ tRun=false; clearInterval(tInt); }
+  function startT(){
+    if (tLeft<=0) tLeft=tTotal;
+    tRun=true; tEnd=Date.now()+tLeft*1000;
+    clearInterval(tInt);
+    tInt=setInterval(function(){
+      tLeft=(tEnd-Date.now())/1000;
+      if (tLeft<=0){ tLeft=0; stopT(); chime(); }
+      drawT();
+    },200);
+    drawT();
+  }
+  $("tToggle").onclick = function(){ tRun ? (stopT(), drawT()) : startT(); };
+  $("tPlus").onclick = function(){ tLeft+=60; tTotal=Math.max(tTotal,tLeft); if(tRun) tEnd+=60000; drawT(); };
+  $("tMinus").onclick = function(){ tLeft=Math.max(0,tLeft-60); if(tRun) tEnd-=60000; drawT(); };
+  $("tClose").onclick = function(){ $("timer").classList.remove("on"); };
+  $("timerBtn").onclick = function(){ $("tLabel").textContent = state.classes[current] ? state.classes[current].name : "Timer"; drawT(); $("timer").classList.add("on"); };
+  function chime(){
+    try {
+      var ac = new (window.AudioContext||window.webkitAudioContext)();
+      [0,0.35,0.7].forEach(function(t,i){
+        var o=ac.createOscillator(), g=ac.createGain();
+        o.frequency.value=[880,988,1175][i]; o.type="sine";
+        g.gain.setValueAtTime(0.0001,ac.currentTime+t);
+        g.gain.exponentialRampToValueAtTime(0.4,ac.currentTime+t+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t+0.6);
+        o.connect(g); g.connect(ac.destination); o.start(ac.currentTime+t); o.stop(ac.currentTime+t+0.65);
+      });
+    } catch(e){}
+  }
+
+  // ---------- misc ----------
+  var tt;
+  function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(tt); tt=setTimeout(function(){t.classList.remove("on");},1800); }
+  document.addEventListener("keydown", function(e){
+    if (e.key==="Escape"){ ["editModal","setModal"].forEach(function(m){$(m).classList.remove("on");}); $("timer").classList.remove("on"); }
+  });
+
+  renderHome(); tick(); setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
