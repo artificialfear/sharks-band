@@ -44,6 +44,7 @@ with sync_playwright() as p:
     check(page.inner_text("#clock").startswith("9:41"), "clock shows fixed time")
     check("Thursday, November 12" in page.inner_text("#date"), "date line")
     check(page.locator(".classbtn").count() == 4, "4 default class buttons")
+    check("Winter Band Concert" in page.inner_text("#cards") and "27 days" in page.inner_text("#cards"), "default concert card (27 days to Wed 12/9)")
     shot(page, "01-home-empty")
 
     # settings: event + note + rename/add class
@@ -67,6 +68,12 @@ with sync_playwright() as p:
     page.locator("#agPlan li").nth(0).click()
     check("done" in page.locator("#agPlan li").nth(0).get_attribute("class"), "tap crosses off item")
     shot(page, "02-agenda")
+
+    # seed: an older saved state with no event gets the concert once
+    page.evaluate('''() => { const d = JSON.parse(localStorage.getItem("sharksBand.v1")); d.event = {name:"",date:""}; delete d.seed; localStorage.setItem("sharksBand.v1", JSON.stringify(d)); }''')
+    page.reload(); page.wait_for_load_state("networkidle")
+    check("Winter Band Concert" in page.inner_text("#cards"), "older saved state gets concert seeded")
+    page.click("#setBtn"); page.fill("#sEvName", "Winter Concert"); page.fill("#sEvDate", "2026-12-10"); page.click("#sSave")
 
     # persistence
     page.reload(); page.wait_for_load_state("networkidle")

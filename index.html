@@ -246,10 +246,11 @@
   "use strict";
   var KEY = "sharksBand.v1";
   var DEFAULTS = {
+    seed: 1,
     school: "Islands",
     program: "Band",
     note: "",
-    event: { name: "", date: "" },
+    event: { name: "Winter Band Concert", date: "2026-12-09" },
     classes: [
       { name: "Band" },
       { name: "Jazz Band" },
@@ -270,6 +271,12 @@
     try { d = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
     if (!d || !Array.isArray(d.classes)) d = clone(DEFAULTS);
     d.event = d.event || { name:"", date:"" };
+    // one-time seed: devices that saved settings before the concert date was added still get it,
+    // but if Emily later clears or changes the event, it stays the way she set it
+    if ((d.seed || 0) < 1) {
+      if (!d.event.name && !d.event.date) d.event = clone(DEFAULTS.event);
+      d.seed = 1;
+    }
     d.classes = d.classes.map(normClass);
     return d;
   }

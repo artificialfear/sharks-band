@@ -19,6 +19,7 @@
 - AP Music Theory meets in a different room, a keyboard lab with no Viewboard. Students there have piano keyboards.
 
 ## Notes and limits
+- The default event is the Winter Band Concert on 2026-12-09. The `seed` field (currently 1) pushes it once to devices whose saved state has no event. To ship a new default event to everyone, bump the seed number and its check in load().
 - All data lives in localStorage (key `sharksBand.v1`) on the device it was typed on. The Viewboard and her laptop don't sync; Export/Import is the workaround.
 - No student data is stored.
 

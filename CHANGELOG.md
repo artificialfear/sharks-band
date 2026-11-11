@@ -1,4 +1,7 @@
 # Changelog
+## v1.4.1 (2026-11-11)
+- The home screen shows a countdown to the Winter Band Concert (Wed, Dec 9, 2026). It hides itself after the concert, and Settings can change it.
+
 ## v1.4.0 (2026-11-11)
 - Back to the v1.0.3 layout: a large logo on the left, with ISLANDS BAND, the clock, date and cards centered on the right. It now uses the new IHS BAND logo.
 
