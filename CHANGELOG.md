@@ -1,4 +1,7 @@
 # Changelog
+## v1.4.0 (2026-11-11)
+- Back to the v1.0.3 layout: a large logo on the left, with ISLANDS BAND, the clock, date and cards centered on the right. It now uses the new IHS BAND logo.
+
 ## v1.3.0 (2026-11-11)
 - ISLANDS BAND title is back, centered above the clock. The IHS BAND logo moved to the top-left corner.
 - The title and logo scale with screen width so they never overlap.

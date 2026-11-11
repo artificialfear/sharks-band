@@ -31,16 +31,14 @@
       radial-gradient(ellipse at 18% 45%, rgba(35,150,146,.28), transparent 55%),
       linear-gradient(180deg,#07090a 0%,#0a1112 100%)}
   .stripe{flex:none;height:1.1vmin;background:var(--teal);box-shadow:0 .5vmin 0 0 #0b0f10,0 .8vmin 0 0 rgba(255,255,255,.85)}
-  .home-main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:3vmin 3vmin 1vmin}
-  .cornerlogo{position:absolute;top:3.2vmin;left:3vmin;height:min(27vh,15vw);width:auto;z-index:2;
-    filter:drop-shadow(0 1vmin 3vmin rgba(0,0,0,.6)) drop-shadow(0 0 3vmin rgba(60,199,192,.25))}
-  .home-main{position:relative}
-  .home-right{display:flex;flex-direction:column;align-items:center;text-align:center;gap:1.6vmin;padding:0 1vmin}
-  .program{font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:min(12.5vmin,6.2vw);line-height:1;white-space:nowrap}
+  .home-main{flex:1;min-height:0;display:grid;grid-template-columns:42% 58%;align-items:center;padding:3vmin 5vmin 1vmin}
+  .logo-wrap{display:grid;place-items:center;height:100%}
+  .logo-wrap img{max-width:88%;max-height:64vh;filter:drop-shadow(0 1.5vmin 3vmin rgba(0,0,0,.6)) drop-shadow(0 0 3vmin rgba(60,199,192,.2))}
+  .home-right{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2.2vmin;padding:0 2vmin}
+  .program{font-weight:900;text-transform:uppercase;letter-spacing:.08em;font-size:9.5vmin;line-height:1;white-space:nowrap}
   .program span{color:var(--teal-hi)}
-  .clock{font-size:16vmin;font-weight:800;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-  .clock{position:relative}
-  .clock small{position:absolute;left:100%;bottom:.12em;font-size:.28em;font-weight:700;color:var(--muted);margin-left:1.5vmin;letter-spacing:.05em}
+  .clock{font-size:17vmin;font-weight:800;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .clock small{font-size:.28em;font-weight:700;color:var(--muted);margin-left:1.5vmin;letter-spacing:.05em;margin-right:-2.5em}
   .date{font-size:3.6vmin;color:var(--muted);font-weight:600}
   .cards{display:flex;gap:2vmin;flex-wrap:wrap;justify-content:center;text-align:left}
   .card{background:rgba(16,21,22,.85);border:1px solid var(--line);border-left:.7vmin solid var(--teal);
@@ -124,8 +122,8 @@
   .toast.on{display:block}
 
   @media (max-aspect-ratio:1/1){
-    .cornerlogo{height:16vh}
-    .home-main{padding-top:18vh}
+    .home-main{grid-template-columns:1fr;grid-template-rows:auto auto;text-align:center}
+    .logo-wrap img{max-height:30vh}
     .home-right{padding-left:0;align-items:center}
     .ag-body{grid-template-columns:1fr;overflow:auto}
   }
@@ -144,7 +142,7 @@
 <section class="screen on" id="home">
   <div class="stripe"></div>
   <div class="home-main">
-    <img class="cornerlogo" src="assets/ihs-band-logo-white-border.png?v=1" alt="IHS Band">
+    <div class="logo-wrap"><img src="assets/ihs-band-logo-white-border.png?v=1" alt="IHS Band"></div>
     <div class="home-right">
       <div class="program" id="progName">Islands <span>Band</span></div>
       <div class="clock" id="clock">--:--</div>
