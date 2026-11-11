@@ -45,4 +45,6 @@
 - Chaperone names and numbers live only in the link's #fragment, which is never sent to the server, but anyone with the link can read them.
 - Trip details (check-in times, schedule, bus spot, regroup spot, rules) are in `trip/trip-config.js`. Several are still TBD and waiting on Mat. Bump `?v=` on the script tag after edits.
 - Decisions (Mat): text/call buttons instead of a live board; check-ins at set times plus an in-person lunch meetup; both parks park-to-park, with CityWalk only with chaperone OK; chaperones are Emily, Mat and Kaitlynn (color guard).
+- Full roster (added 2026-11-11): Mat pastes the whole roster once on the chaperone Setup tab. Spreadsheet rows (tabs) or "Name, phone, group" lines both work; split first/last columns are joined and a header row is skipped. The roster is stored in localStorage key `trip.master.v1`. "Copy roster link" makes `#chap&r=<base64url roster>` for the other chaperones. On load, the page imports the roster and then rewrites the URL to `#chap` so names don't stay in the address bar or history. Chaperones pick students with checkboxes (filter by group, select a whole group, search), which fills their group roster. Hand-typed names are kept.
+- The roster never goes in the repo or to Claude. Mat was told not to send it.
 - Test: `python3 tests/trip_smoke.py --shots /tmp/trip`

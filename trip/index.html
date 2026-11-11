@@ -80,6 +80,11 @@
     font-weight:800;padding:10px 18px;border-radius:99px;display:none;z-index:50}
   .toast.on{display:block}
   .err{color:var(--bad);font-weight:700}
+  .pick{display:flex;align-items:center;gap:10px;padding:10px 4px;margin:0;border-bottom:1px dashed var(--line);font-size:16px;text-transform:none;letter-spacing:normal;color:var(--text);font-weight:600}
+  .pick input{width:22px;height:22px;flex:none;accent-color:var(--teal)}
+  .pick .g{margin-left:auto;font-size:12px;color:var(--muted)}
+  .pick.taken .nm{color:var(--muted)}
+  #pickList{max-height:340px;overflow:auto}
 </style>
 </head>
 <body>
@@ -175,6 +180,28 @@
       <input id="cPhone" type="tel" inputmode="tel" placeholder="912-555-0123">
       <label for="cGroup">Group name</label>
       <input id="cGroup" placeholder="e.g. Group A">
+    </div>
+    <div class="card" id="masterCard">
+      <h2>Full trip roster</h2>
+      <div id="masterStatus" class="muted small" style="margin-bottom:8px"></div>
+      <details id="masterDetails">
+        <summary class="small" style="cursor:pointer;color:var(--teal-hi);font-weight:800">Paste or replace the roster</summary>
+        <p class="muted small">Copy the rows straight from a spreadsheet, or type one student per line: <b>Name, phone, group</b>. Phone and group are optional. First and last name in separate columns works too.</p>
+        <textarea id="masterIn" placeholder="Jordan Smith, 912-555-0101, Group A&#10;Ava Jones, 912-555-0102, Group B"></textarea>
+        <div style="height:8px"></div>
+        <button class="btn primary" id="masterLoad">Load roster</button>
+      </details>
+      <div id="masterShare" class="hide" style="margin-top:10px">
+        <button class="btn" id="masterCopy">Copy roster link for other chaperones</button>
+        <p class="muted small" style="margin:6px 0 0">Text this link only to the other chaperones. It contains every student's name and number.</p>
+      </div>
+    </div>
+    <div class="card hide" id="pickCard">
+      <h2>Pick your students</h2>
+      <div class="chips" id="pickGroups"></div>
+      <input id="pickSearch" placeholder="Search names" style="margin-bottom:8px">
+      <div id="pickList"></div>
+      <p class="muted small" style="margin:6px 0 0">Checked students fill in the list below automatically.</p>
     </div>
     <div class="card">
       <h2>Your students</h2>
@@ -432,6 +459,88 @@ function chaperone(){
   };
   showLink();
 
+  // ---------- full roster (pasted once, shared to other chaperones by link fragment) ----------
+  var MK = "trip.master.v1";
+  function looksPhone(t){ return digits(t).replace(/^\+?1/,"").length >= 10; }
+  function parseMaster(txt){
+    var out = [];
+    String(txt||"").split(/\r?\n/).forEach(function(line){
+      if (!line.trim()) return;
+      var cols = (line.indexOf("\t") > -1 ? line.split("\t") : line.split(",")).map(function(c){return c.trim();}).filter(Boolean);
+      if (!cols.length) return;
+      if (/^(student|name|first)/i.test(cols[0]) && !looksPhone(line)) return;   // header row
+      var phone = "", group = "", names = [];
+      cols.forEach(function(c){
+        if (!phone && looksPhone(c)) phone = c;
+        else if (/^(group|grp)\b/i.test(c) || (phone && names.length)) group = group || c;
+        else names.push(c);
+      });
+      if (!phone && !group && names.length > 1 && (names.length > 2 || names[names.length-1].length <= 2)) group = names.pop();  // trailing group, no phone
+      var name = names.join(" ").replace(/\s+/g," ").trim();
+      if (name) out.push({n:name, p:phone, g:group});
+    });
+    return out;
+  }
+  var master = get(MK, []);
+  // arriving from a shared roster link: #chap&r=...
+  (function(){
+    var m = location.hash.match(/[#&]r=([^&]+)/);
+    if (!m) return;
+    try {
+      var incoming = dec(m[1]);
+      if (Array.isArray(incoming) && incoming.length){ master = incoming; put(MK, master); toast("Roster loaded: " + master.length + " students"); }
+    } catch(e){ toast("That roster link didn't work"); }
+    history.replaceState(null, "", location.pathname + location.search + "#chap");   // keep names out of the address bar / history
+  })();
+
+  var pickGroup = "", pickQ = "";
+  function chosen(){ var o = {}; parseLines(S.roster).forEach(function(x){ o[x.n] = 1; }); return o; }
+  function renderMaster(){
+    $("masterStatus").textContent = master.length ? master.length + " students loaded on this phone." : "No roster loaded yet.";
+    $("masterShare").classList.toggle("hide", !master.length);
+    $("pickCard").classList.toggle("hide", !master.length);
+    if (!master.length) { $("masterDetails").open = true; return; }
+    var groups = []; master.forEach(function(x){ if (x.g && groups.indexOf(x.g) < 0) groups.push(x.g); });
+    $("pickGroups").innerHTML = groups.length ? ['<button class="chip'+(pickGroup===""?" on":"")+'" data-g="">All</button>'].concat(groups.map(function(g){
+      return '<button class="chip'+(pickGroup===g?" on":"")+'" data-g="'+esc(g)+'">'+esc(g)+'</button>'; })).join("") +
+      (pickGroup ? '<button class="chip" data-all="1">Select all in '+esc(pickGroup)+'</button>' : "") : "";
+    var ch = chosen(), q = pickQ.toLowerCase();
+    $("pickList").innerHTML = master.filter(function(x){ return (!pickGroup || x.g === pickGroup) && (!q || x.n.toLowerCase().indexOf(q) > -1); })
+      .map(function(x){ return '<label class="pick"><input type="checkbox" data-n="'+esc(x.n)+'"'+(ch[x.n]?" checked":"")+'><span class="nm">'+esc(x.n)+'</span><span class="g">'+esc([x.g, x.p ? "" : "no phone #"].filter(Boolean).join(" \u00b7 "))+'</span></label>'; }).join("")
+      || '<p class="muted small">No matches.</p>';
+  }
+  function setRosterFrom(namesSet){
+    // keep the master's order; keep any hand-typed students that aren't in the master
+    var typed = parseLines(S.roster).filter(function(x){ return !master.some(function(m){return m.n===x.n;}); });
+    var picked = master.filter(function(m){ return namesSet[m.n]; });
+    S.roster = picked.concat(typed).map(function(x){ return x.p ? x.n + ", " + x.p : x.n; }).join("\n");
+    $("cRoster").value = S.roster; save(); render();
+  }
+  $("masterLoad").onclick = function(){
+    var list = parseMaster($("masterIn").value);
+    if (!list.length){ toast("Couldn't find any names"); return; }
+    master = list; put(MK, master); $("masterIn").value = ""; $("masterDetails").open = false;
+    renderMaster(); toast("Loaded " + list.length + " students");
+  };
+  $("masterCopy").onclick = function(){
+    var url = location.href.split("#")[0] + "#chap&r=" + enc(master);
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function(){toast("Roster link copied");},function(){
+      var ta=document.createElement("textarea"); ta.value=url; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy"); toast("Roster link copied");}catch(e){} ta.remove(); });
+  };
+  $("pickGroups").onclick = function(e){
+    var b = e.target.closest(".chip"); if (!b) return;
+    if (b.dataset.all){ var ch = chosen(); master.forEach(function(x){ if (x.g === pickGroup) ch[x.n] = 1; }); setRosterFrom(ch); renderMaster(); return; }
+    pickGroup = b.dataset.g; renderMaster();
+  };
+  $("pickSearch").oninput = function(){ pickQ = this.value; renderMaster(); };
+  $("pickList").onchange = function(e){
+    var cb = e.target; if (!cb.dataset || !cb.dataset.n) return;
+    var ch = chosen(); if (cb.checked) ch[cb.dataset.n] = 1; else delete ch[cb.dataset.n];
+    setRosterFrom(ch);
+  };
+  $("cRoster").addEventListener("change", function(){ S.roster = this.value; save(); renderMaster(); render(); });
+  renderMaster();
+
   // check-ins
   var round = (function(){ var now=new Date(), r=0; T.checkins.forEach(function(c,i){ var d=at(c.time); if(d && d<=new Date(now.getTime()+30*60000)) r=i; }); return r; })();
   $("roundChips").onclick = function(e){ var b=e.target.closest(".chip"); if(!b) return; round=+b.dataset.r; render(); };
@@ -528,7 +637,7 @@ function route(){
   var h = location.hash || "";
   if (h.indexOf("#s=") === 0){
     try { var info = dec(h.slice(3)); if (!info.c || !info.p) throw 0; student(info); } catch(e){ show("bad"); }
-  } else if (h === "#chap") chaperone();
+  } else if (h.indexOf("#chap") === 0) chaperone();
   else show("landing");
 }
 window.addEventListener("hashchange", function(){ location.reload(); });
