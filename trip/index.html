@@ -131,8 +131,9 @@
     <h2>Check in</h2>
     <div class="muted small">Where are you right now?</div>
     <div class="chips" id="parkChips"></div>
-    <a class="btn primary" id="checkBtn" href="#">&#9989; Text my check-in</a>
-    <p class="muted small" style="margin:8px 0 0">This opens your Messages app with the text ready. <b>You still have to press Send.</b></p>
+    <a class="btn primary" id="checkBtn" href="#">&#9989; Send my check-in</a>
+    <p class="muted small hint-band" style="margin:8px 0 0">This copies your message and opens your group's BAND chat. <b>Paste it in the chat and send.</b></p>
+    <p class="muted small hint-sms hide" style="margin:8px 0 0">This opens your Messages app with the text ready. <b>You still have to press Send.</b></p>
   </div>
 
   <div class="card" id="nextCard">
@@ -144,7 +145,7 @@
     <p class="muted small" style="margin:8px 0 0" id="alarmTxt"></p>
   </div>
 
-  <button class="btn danger" id="helpJump">&#128680; Need help? Call or text your chaperone</button>
+  <button class="btn danger" id="helpJump">&#128680; Need help? Contact your chaperone</button>
 
   <div class="card hide" id="installCard">
     <h2>Save this page</h2>
@@ -160,12 +161,18 @@
  <div class="spane hide" data-st="help">
   <div class="card">
     <h2>Need help?</h2>
-    <button class="btn" id="locBtn">&#128205; Add my location to my texts</button>
+    <button class="btn" id="locBtn">&#128205; Add my location to my messages</button>
     <p class="small muted" id="locStatus" style="margin:6px 0 10px">Your chaperone gets a map link to exactly where you are.</p>
     <a class="btn danger" id="callBtn" href="#">&#128222; Call my chaperone</a>
+    <p class="small muted hint-band" style="margin:-2px 0 10px">Opens your group's BAND chat. Use BAND's call button there to call your chaperone.</p>
     <a class="btn" id="lostBtn" href="#">I'm separated from my group</a>
     <a class="btn" id="sickBtn" href="#">I'm sick or hurt</a>
-    <a class="btn" id="otherBtn" href="#">Something else, text my chaperone</a>
+    <a class="btn" id="otherBtn" href="#">Something else, message my chaperone</a>
+    <p class="small muted hint-band" style="margin:8px 0 0">Each button copies your message and opens BAND. <b>Paste it in your group chat and send.</b></p>
+    <div class="card hide" id="lastMsgBox" style="margin:10px 0 0;background:#070a0b">
+      <div class="small muted" style="margin-bottom:6px">Your last message (press and hold to copy it again):</div>
+      <div id="lastMsg" style="font-size:15px;-webkit-user-select:text;user-select:text"></div>
+    </div>
     <div id="backupBox"></div>
     <p class="small" style="margin:12px 0 0"><b>Can't reach any chaperone?</b> Find any Universal team member or go to Guest Services and say you're with a school group. <b>Real emergency: call 911.</b></p>
   </div>
@@ -225,10 +232,14 @@
       <h2>You</h2>
       <label for="cName">Your name (as students know you)</label>
       <input id="cName" placeholder="e.g. Mrs. Graham">
-      <label for="cPhone">Your cell number</label>
-      <input id="cPhone" type="tel" inputmode="tel" placeholder="912-555-0123">
       <label for="cGroup">Group name</label>
       <input id="cGroup" placeholder="e.g. Group A">
+      <label for="cBand">Your group's BAND chat link</label>
+      <input id="cBand" type="url" inputmode="url" placeholder="https://band.us/...">
+      <p class="muted small" style="margin:6px 0 0">In BAND, open your group's chat, find its share/invite link, copy it, and paste it here. Students' buttons open this chat.</p>
+      <label for="cPhone">Your cell number (other chaperones only)</label>
+      <input id="cPhone" type="tel" inputmode="tel" placeholder="912-555-0123">
+      <p class="muted small" style="margin:6px 0 0">Not shown to students. Only used on your phone for chaperone-to-chaperone texts.</p>
     </div>
     <div class="card" id="masterCard">
       <h2>Full trip roster</h2>
@@ -265,7 +276,7 @@
     <button class="btn primary" id="cSave">Save &amp; make my students' link</button>
     <div class="card hide" id="linkCard" style="margin-top:12px">
       <h2>Your group's student link</h2>
-      <p class="muted small" style="margin-top:0">Students scan this on the bus, or you text them the link. Anyone with the link can see your name and number, so only share it with your group.</p>
+      <p class="muted small" style="margin-top:0">Post this link in your group's BAND chat, or have students scan the QR code on the bus. It contains your name and your group's chat link, with no phone numbers.</p>
       <div class="qr" id="qr"></div>
       <div class="linkbox" id="linkTxt"></div>
       <div class="row">
@@ -355,7 +366,7 @@
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="trip-config.js?v=2"></script>
+<script src="trip-config.js?v=3"></script>
 <script src="qrcode.js"></script>
 <script>
 (function(){
@@ -411,7 +422,11 @@ function student(info){
   var loc = get("trip.student.loc", null);
   var park = get("trip.student.park", T.parks[0]);
   $("sChap").textContent = info.c;
-  $("sGroup").textContent = (info.g ? info.g + " · " : "") + info.p;
+  var useBand = !!info.k;   // BAND chat link (new) vs. phone number (older links)
+  $("sGroup").textContent = info.g || "";
+  document.querySelectorAll(".hint-band").forEach(function(el){ el.classList.toggle("hide", !useBand); });
+  document.querySelectorAll(".hint-sms").forEach(function(el){ el.classList.toggle("hide", useBand); });
+  if (useBand) $("callBtn").innerHTML = "&#128172; Open my group's BAND chat";
 
   function goTab(t){
     document.querySelectorAll("#student .spane").forEach(function(p){ p.classList.toggle("hide", p.dataset.st !== t); });
@@ -447,29 +462,42 @@ function student(info){
     var d = new Date(loc.t), h = d.getHours()%12||12, ts = h+":"+pad(d.getMinutes())+(d.getHours()<12?" AM":" PM");
     return " My location" + (age > 10 ? " at " + ts : "") + ": https://maps.google.com/?q=" + loc.lat.toFixed(5) + "," + loc.lon.toFixed(5);
   }
-  function refreshLinks(){
+  function msg(kind){
     var L = locText();
-    $("checkBtn").href = smsHref(info.p, "✅ Check-in: " + withBuddies() + " at " + nowStr() + ". In " + park + ". All good." + L);
-    $("callBtn").href  = telHref(info.p);
-    $("lostBtn").href  = smsHref(info.p, "⚠️ " + who() + ": I'm separated from my group. I'm in " + park + "." + L + " Near: ");
-    $("sickBtn").href  = smsHref(info.p, "🩹 " + who() + ": I'm sick or hurt. I'm in " + park + "." + L + " Near: ");
-    $("otherBtn").href = smsHref(info.p, who() + ":" + L + " ");
+    if (kind === "check") return "\u2705 Check-in: " + withBuddies() + " at " + nowStr() + ". In " + park + ". All good." + L;
+    if (kind === "lost")  return "\u26a0\ufe0f " + who() + ": I'm separated from my group. I'm in " + park + "." + L + " Near: ";
+    if (kind === "sick")  return "\ud83e\ude79 " + who() + ": I'm sick or hurt. I'm in " + park + "." + L + " Near: ";
+    return who() + ":" + L + " ";
+  }
+  window.__msg = msg;
+  var BTN = {checkBtn:"check", lostBtn:"lost", sickBtn:"sick", otherBtn:"other"};
+  function refreshLinks(){
+    Object.keys(BTN).forEach(function(id){ $(id).href = useBand ? info.k : smsHref(info.p, msg(BTN[id])); });
+    $("callBtn").href = useBand ? info.k : telHref(info.p);
     renderLoc();
   }
+  function copyText(t){   // must run inside the tap, before the browser leaves for BAND
+    var ok = false;
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t); ok = true; } } catch(e){}
+    try { var ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.opacity="0";
+          document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, t.length); ok = document.execCommand("copy") || ok; ta.remove(); } catch(e){}
+    return ok;
+  }
+  window.__copy = copyText;
   function renderLoc(){
     if (!loc) return;
     var mins = Math.round((Date.now() - loc.t) / 60000);
-    $("locStatus").textContent = "✔ Location added to your texts (" + (mins < 1 ? "just now" : mins + " min ago") + ", within about " + Math.round(loc.acc) + " m)." + (mins > 10 ? " Tap again to update it." : "");
+    $("locStatus").textContent = "✔ Location added to your messages (" + (mins < 1 ? "just now" : mins + " min ago") + ", within about " + Math.round(loc.acc) + " m)." + (mins > 10 ? " Tap again to update it." : "");
     $("locBtn").innerHTML = "&#128205; Update my location";
   }
   $("locBtn").onclick = function(){
-    if (!navigator.geolocation){ $("locStatus").textContent = "This phone can't share location here. Describe where you are in your text."; return; }
+    if (!navigator.geolocation){ $("locStatus").textContent = "This phone can't share location here. Describe where you are in your message."; return; }
     $("locStatus").textContent = "Finding you… (tap Allow if your phone asks)";
     navigator.geolocation.getCurrentPosition(function(pos){
       loc = {lat:pos.coords.latitude, lon:pos.coords.longitude, acc:pos.coords.accuracy, t:Date.now()};
       put("trip.student.loc", loc); refreshLinks(); toast("Location added");
     }, function(err){
-      $("locStatus").textContent = err.code === 1 ? "Location is blocked. Turn on Location for your browser in Settings, or describe where you are in your text."
+      $("locStatus").textContent = err.code === 1 ? "Location is blocked. Turn on Location for your browser in Settings, or describe where you are in your message."
         : "Couldn't get your location right now. Try again in a moment, or describe where you are.";
     }, {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
   };
@@ -517,11 +545,23 @@ function student(info){
   })();
   // check-in time inside the text should be the time of tapping
   ["checkBtn","lostBtn","sickBtn","otherBtn"].forEach(function(id){
-    $(id).addEventListener("click", function(e){ if(!name){ e.preventDefault(); askName(); window.scrollTo(0,0); toast("Add your name first"); return; } refreshLinks(); }, true);
+    $(id).addEventListener("click", function(e){
+      if(!name){ e.preventDefault(); askName(); window.scrollTo(0,0); toast("Add your name first"); return; }
+      refreshLinks();
+      if (useBand){
+        var t = msg(BTN[id]); copyText(t);
+        $("lastMsg").textContent = t; $("lastMsgBox").classList.remove("hide"); put("trip.student.lastMsg", t);
+        toast("Copied! Paste it in BAND");
+      }
+    }, true);
   });
   refreshLinks();
+  var lm = get("trip.student.lastMsg", ""); if (useBand && lm){ $("lastMsg").textContent = lm; $("lastMsgBox").classList.remove("hide"); }
 
-  var b = (info.b||[]).filter(function(x){return x.p;});
+  var b = useBand ? [] : (info.b||[]).filter(function(x){return x.p;});
+  var bn = (info.b||[]).map(function(x){return x.n;}).filter(Boolean);
+  if (useBand && bn.length) $("backupBox").innerHTML = '<p class="small" style="margin:12px 0 0"><b>Can\'t reach '+esc(info.c)+'?</b> Message '+esc(bn.join(" or "))+' in BAND, or post in the main band page.</p>';
+  else
   $("backupBox").innerHTML = b.length ? '<p class="muted small" style="margin:12px 0 6px">Can\'t reach '+esc(info.c)+'? Try:</p>' +
     b.map(function(x){ return '<div class="row" style="margin-bottom:8px"><a class="btn" href="'+telHref(x.p)+'">Call '+esc(x.n)+'</a><a class="btn" href="'+smsHref(x.p, (name||"(name)")+": I can't reach "+info.c+". ")+'">Text</a></div>'; }).join("") : "";
 
@@ -566,13 +606,14 @@ function chaperone(){
   };
 
   // setup
-  $("cName").value=S.name; $("cPhone").value=S.phone; $("cGroup").value=S.group; $("cRoster").value=S.roster; $("cBackups").value=S.backups;
+  $("cName").value=S.name; $("cPhone").value=S.phone; $("cGroup").value=S.group; $("cBand").value=S.band||""; $("cRoster").value=S.roster; $("cBackups").value=S.backups;
   function studentLink(){
     var base = location.href.split("#")[0];
-    return base + "#s=" + enc({c:S.name, p:S.phone, g:S.group, b:parseLines(S.backups)});
+    // students get the BAND chat link and backup chaperone NAMES only, no phone numbers
+    return base + "#s=" + enc({c:S.name, k:S.band, g:S.group, b:parseLines(S.backups).map(function(x){return {n:x.n};})});
   }
   function showLink(){
-    if (!S.name || !digits(S.phone)) return;
+    if (!S.name || !/band\.us\//i.test(S.band||"")) return;
     var url = studentLink();
     $("linkCard").classList.remove("hide"); $("linkTxt").textContent = url; $("previewLink").href = url;
     try { var q = qrcode(0,"M"); q.addData(url); q.make(); $("qr").innerHTML = q.createSvgTag({cellSize:4, margin:2, scalable:true}); }
@@ -580,8 +621,9 @@ function chaperone(){
   }
   $("cSave").onclick = function(){
     S.name=$("cName").value.trim(); S.phone=$("cPhone").value.trim(); S.group=$("cGroup").value.trim();
+    var bl = $("cBand").value.trim(); if (bl && !/^https?:\/\//i.test(bl)) bl = "https://" + bl; S.band = bl;
     S.roster=$("cRoster").value; S.backups=$("cBackups").value;
-    if (!S.name || digits(S.phone).length < 10){ toast("Add your name and a 10-digit number"); return; }
+    if (!S.name || !/band\.us\//i.test(S.band)){ toast("Add your name and your group's BAND chat link"); return; }
     save(); showLink(); toast("Saved"); $("linkCard").scrollIntoView({behavior:"smooth"});
   };
   $("copyLink").onclick = function(){
@@ -728,7 +770,8 @@ function chaperone(){
       (S.lost.where ? ". Last seen: " + S.lost.where : "") + (S.lost.wear ? ". Wearing: " + S.lost.wear : "") + ". Please keep an eye out. —" + S.name;
     var h = "";
     if (st && st.p) h += '<div class="row" style="margin-bottom:8px"><a class="btn primary" href="'+telHref(st.p)+'">Call '+esc(st.n.split(" ")[0])+'</a><a class="btn" href="'+smsHref(st.p, st.n.split(" ")[0]+", where are you? Call or text me back right now. —"+S.name)+'">Text</a></div>';
-    else if (S.lost.who) h += '<p class="muted small">No number saved for this student. Add one on the Setup tab (Name, number).</p>';
+    if (S.band) h += '<a class="btn primary" href="'+esc(S.band)+'">Message them in your BAND chat</a><p class="muted small" style="margin:4px 0 10px">Use BAND\'s call button in their chat to call them.</p>';
+    else if (S.lost.who && !(st && st.p)) h += '<p class="muted small">Add your group\'s BAND chat link on the Setup tab to get a message button here.</p>';
     parseLines(S.backups).forEach(function(b){ if(b.p) h += '<a class="btn danger" href="'+smsHref(b.p,msg)+'">Alert '+esc(b.n)+'</a>'; });
     if (!parseLines(S.backups).length) h += '<p class="muted small">Add the other chaperones on the Setup tab to get alert buttons here.</p>';
     h += '<a class="btn" href="tel:911" style="margin-top:8px">Call 911</a>';
@@ -785,12 +828,12 @@ function chaperone(){
 function route(){
   var h = location.hash || "";
   if (h.indexOf("#s=") === 0){
-    try { var info = dec(h.slice(3)); if (!info.c || !info.p) throw 0; put("trip.student.info", info); put("trip.mode", "student"); student(info); } catch(e){ show("bad"); }
+    try { var info = dec(h.slice(3)); if (!info.c || !(info.k || info.p)) throw 0; put("trip.student.info", info); put("trip.mode", "student"); student(info); } catch(e){ show("bad"); }
   } else if (h.indexOf("#chap") === 0){ put("trip.mode", "chap"); chaperone(); }
   else {
     // opened from the home screen or with no #: reopen whatever this phone used last
     var mode = get("trip.mode", ""), saved = get("trip.student.info", null);
-    if (mode === "student" && saved && saved.p) student(saved);
+    if (mode === "student" && saved && (saved.k || saved.p)) student(saved);
     else if (mode === "chap") chaperone();
     else show("landing");
   }

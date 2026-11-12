@@ -36,8 +36,8 @@ window.TRIP = {
   rules: [
     "Stay with your buddy group at all times. Never go anywhere alone.",
     "Check in at every check-in time, even if nothing has changed.",
-    "Answer your chaperone's texts and calls right away.",
-    "Keep your phone charged. Bring a battery pack if you have one.",
+    "Answer your chaperone's BAND messages and calls right away.",
+    "Keep your phone charged and BAND notifications on. Bring a battery pack if you have one.",
     "Both parks are OK. Ask your chaperone before going to CityWalk.",
     "Be at the buses 15 minutes before departure."
   ],
