@@ -1,6 +1,6 @@
 // Offline support for the trip page. Network first (so edits to trip-config.js arrive),
 // falling back to the saved copy when the park's signal is bad or gone.
-const CACHE = 'band-trip-v2';
+const CACHE = 'band-trip-v3';
 const ASSETS = ['./', './index.html', './trip-config.js?v=2', './qrcode.js', './manifest.webmanifest',
                 './icon-192.png', './icon-512.png', '../assets/shark.png?v=1'];
 
