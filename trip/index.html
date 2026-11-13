@@ -651,7 +651,7 @@ function chaperone(){
       var phone = "", group = "", names = [];
       cols.forEach(function(c){
         if (!phone && looksPhone(c)) phone = c;
-        else if (/^(group|grp)\b/i.test(c) || (phone && names.length)) group = group || c;
+        else if (/^(group|grp)\b|\bgroup$/i.test(c) || (phone && names.length)) group = group || c;
         else names.push(c);
       });
       if (!phone && !group && names.length > 1 && (names.length > 2 || names[names.length-1].length <= 2)) group = names.pop();  // trailing group, no phone
