@@ -156,7 +156,9 @@ with sync_playwright() as pw:
     check(s.get_attribute("#checkBtn","href").startswith("https://band.us/"), "check-in opens BAND")
     check("912" not in s.inner_text("#student"), "no phone numbers anywhere on student page")
     check("Mr. Graham or Ms. Kaitlyn" in s.inner_text("#backupBox"), "backup chaperones named for BAND")
-    check("Lunch meetup" in s.inner_text("#cdLbl"),"countdown points at lunch: "+s.inner_text("#cdLbl"))
+    check("Check-in 2" in s.inner_text("#cdLbl") and "Lunch" not in s.inner_text("#cdLbl"),"countdown: 1:00 is a regular check-in: "+s.inner_text("#cdLbl"))
+    sched=s.evaluate("document.getElementById('sched').innerText")
+    check("Lunch" not in sched and "6:00 PM" in sched and "Meet up at TBD location" in sched and "6:15" not in sched, "schedule: no lunch meetup, 6:00 meet-up")
     for t in ["home","help","sched","info"]:
         s.click("#snav button[data-st=%s]" % t); s.wait_for_timeout(150)
         if SHOTS: s.screenshot(path=os.path.join(SHOTS, "st-%s.png" % t))

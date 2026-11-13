@@ -13,7 +13,7 @@ window.TRIP = {
   // inPerson: true = meet your chaperone face to face instead of messaging.
   checkins: [
     { time: "11:00", label: "Check-in 1" },
-    { time: "13:00", label: "Lunch meetup", inPerson: true, place: "TBD: meeting spot" },
+    { time: "13:00", label: "Check-in 2" },
     { time: "15:00", label: "Check-in 3" },
     { time: "17:00", label: "Check-in 4" }
   ],
@@ -24,8 +24,7 @@ window.TRIP = {
     { time: "04:45", what: "Arrive at Islands High School for check-in and boarding" },
     { time: "05:00", what: "Bus leaves for Orlando (one rest stop on the way, snack and juice included)" },
     { time: "10:00", what: "Arrive at Universal Orlando. Park-to-Park: Universal Studios and Islands of Adventure" },
-    { time: "13:00", what: "Lunch meetup with your chaperone (in person)" },
-    { time: "18:15", what: "Be at the bus. It leaves at 6:30 sharp.", remind: true },
+    { time: "18:00", what: "Meet up at TBD location", remind: true },
     { time: "18:30", what: "Bus leaves for home (one rest stop on the way)" },
     { time: "23:30", what: "Arrive back at Islands High School" }
   ],
@@ -47,7 +46,7 @@ window.TRIP = {
     "Both parks are OK (Park-to-Park). Ask your chaperone before going to CityWalk.",
     "Lunch and dinner are on your own inside the park.",
     "School dress code applies all day.",
-    "Be at the bus by 6:15 PM. It leaves at 6:30.",
+    "Meet up at 6:00 PM (location TBD). The bus leaves at 6:30.",
     "At rest stops, stay with your buddies and get back on the bus as soon as you're called."
   ],
 
