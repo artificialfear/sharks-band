@@ -30,11 +30,11 @@ window.TRIP = {
     { time: "23:30", what: "Arrive back at Islands High School" }
   ],
 
-  parks: ["Universal Studios Florida", "Islands of Adventure", "CityWalk"],
+  parks: ["Universal Studios Florida", "Islands of Adventure"],
 
   bus: { pickup: "Kelly Tours motor coach. TBD: where it parks at Universal",
          note: "Take a photo of where the bus is parked. Trip #31740." },
-  regroup: "TBD: where to go if you are separated from your group",
+  regroup: "TBD: where to go",
 
   // Shown to chaperones only (Chaperones tab).
   tourCompany: { name: "Kelly Tours", trip: "31740", phones: ["(912) 964-2010", "800-442-6152"] },
@@ -44,9 +44,8 @@ window.TRIP = {
     "Check in at every check-in time, even if nothing has changed.",
     "Answer your chaperone's BAND messages and calls right away.",
     "Keep your phone charged and BAND notifications on. Bring a battery pack if you have one.",
-    "Both parks are OK (Park-to-Park). Ask your chaperone before going to CityWalk.",
+    "Both parks are OK (Park-to-Park). You may not spend time in CityWalk.",
     "Lunch and dinner are on your own inside the park.",
-    "School dress code applies all day.",
     "Meet up at 6:00 PM (location TBD). The bus leaves at 6:30.",
     "At rest stops, stay with your buddies and get back on the bus as soon as you're called."
   ],

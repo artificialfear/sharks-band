@@ -185,16 +185,13 @@
     <ul class="clean" id="sched"></ul>
   </div>
 
-  <div class="card">
-    <h2>Bus &amp; meeting spot</h2>
-    <div><b>Bus:</b> <span id="busTxt"></span></div>
-    <div class="muted small" id="busNote"></div>
-    <div style="margin-top:8px"><b>Separated?</b> <span id="regroupTxt"></span></div>
-  </div>
-
  </div>
 
  <div class="spane hide" data-st="info">
+  <div class="card">
+    <h2>Separated from your group?</h2>
+    <div id="regroupTxt" style="font-weight:700"></div>
+  </div>
   <div class="card">
     <h2>Rules</h2>
     <ul class="clean" id="rules"></ul>
@@ -386,7 +383,7 @@
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="trip-config.js?v=7"></script>
+<script src="trip-config.js?v=8"></script>
 <script src="qrcode.js"></script>
 <script>
 (function(){
@@ -476,6 +473,7 @@ function student(info){
   var buddies = get("trip.student.buddies","");
   var loc = get("trip.student.loc", null);
   var park = get("trip.student.park", T.parks[0]);
+  if (T.parks.indexOf(park) < 0) park = T.parks[0];   // e.g. a phone that had picked CityWalk before it was removed
   $("sChap").textContent = info.c;
   var useBand = !!info.k;   // BAND chat link (new) vs. phone number (older links)
   $("sGroup").textContent = info.g || "";
@@ -620,7 +618,6 @@ function student(info){
   $("backupBox").innerHTML = b.length ? '<p class="muted small" style="margin:12px 0 6px">Can\'t reach '+esc(info.c)+'? Try:</p>' +
     b.map(function(x){ return '<div class="row" style="margin-bottom:8px"><a class="btn" href="'+telHref(x.p)+'">Call '+esc(x.n)+'</a><a class="btn" href="'+smsHref(x.p, (name||"(name)")+": I can't reach "+info.c+". ")+'">Text</a></div>'; }).join("") : "";
 
-  $("busTxt").textContent = T.bus.pickup; $("busNote").textContent = T.bus.note || "";
   $("regroupTxt").textContent = T.regroup;
   $("rules").innerHTML = T.rules.map(function(r){return "<li>"+esc(r)+"</li>";}).join("");
   $("bring").innerHTML = T.bring.map(function(r){return "<li>"+esc(r)+"</li>";}).join("");
@@ -634,7 +631,7 @@ function student(info){
     if (now < tripDay) { $("cd").textContent = fmt12(next.time); $("cdLbl").textContent = "First check-in on trip day"; return; }
     if (ms <= 0){ $("cd").textContent = "NOW"; $("cd").className="countdown now"; }
     else { var m = Math.ceil(ms/60000), h = Math.floor(m/60); $("cd").textContent = (h? h+"h ":"") + (m%60) + "m"; $("cd").className="countdown"; }
-    $("cdLbl").textContent = fmt12(next.time) + " · " + next.label + (next.inPerson ? " — meet in person: " + (next.place||"") : " — text check-in");
+    $("cdLbl").textContent = fmt12(next.time) + " · " + next.label + (next.inPerson ? " — meet in person: " + (next.place||"") : (info.k ? " \u2014 send it in BAND" : " \u2014 text check-in"));
   }
   tick(); setInterval(tick, 20000);
 }
