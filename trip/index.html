@@ -228,6 +228,10 @@
 
   <!-- setup -->
   <div data-p="setup">
+    <div class="card hide" id="setupErr" style="border-color:#7a2a2e;background:#24100f">
+      <h2 style="color:var(--bad)">That setup link didn't load</h2>
+      <p style="margin:0">It was probably cut off when it was texted. Ask the trip leader to <b>show you the setup QR code</b> and scan it with your camera instead.</p>
+    </div>
     <div class="card hide" id="setupDone"></div>
     <div id="setupFields">
     <div class="card">
@@ -289,8 +293,14 @@
     </div>
     <details class="card hide" id="teamCard">
       <summary style="cursor:pointer;font-weight:800;color:var(--teal-hi)">Trip leader only: set up the other chaperones</summary>
-      <p class="muted small">Fill in each chaperone once. Then tap <b>Copy setup link</b> and text it to that chaperone. When they tap it, their phone is fully set up: name, group, students, BAND chat and backup chaperones. They don't type anything.</p>
+      <p class="muted small">Fill in each chaperone once. Easiest: tap <b>Show setup QR</b> and have them scan it with their camera. Or tap <b>Copy setup link</b> and text it. When they tap it, their phone is fully set up: name, group, students, BAND chat and backup chaperones. They don't type anything.</p>
       <div id="teamRows"></div>
+      <div class="card hide" id="setupQR" style="margin-top:12px;text-align:center">
+        <h2>Setup for <span class="qrname"></span></h2>
+        <p class="small" style="margin-top:0">Have them open their phone's <b>Camera</b>, point it at this code and tap the link that pops up. It opens in their browser fully set up.</p>
+        <div class="qrwrap" style="background:#fff;border-radius:12px;padding:8px"></div>
+        <button class="btn ghost" onclick="this.parentNode.classList.add('hide')" style="margin-top:8px">Done</button>
+      </div>
     </details>
     <div class="card small muted">
       <b style="color:var(--text)">Morning tip:</b> take a photo of your group at the park entrance. If someone goes missing, you'll know exactly what they're wearing.
@@ -411,6 +421,33 @@ function telHref(num){ return "tel:" + digits(num); }
 function enc(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
 function dec(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); while(s.length%4) s+="="; return JSON.parse(decodeURIComponent(escape(atob(s)))); }
 
+// compact setup payload: {v:2, s:[name, phone, group, band, backups], m:[[name, cell, parentName, parentPhone, medical], ...]}
+function packSetup(st, students){
+  return {v:2, s:[st.name, st.phone||"", st.group, st.band, st.backups||""],
+          m: students.map(function(x){ var a=[x.n, x.p||"", x.pn||"", x.pp||"", x.m||""]; while (a.length > 1 && a[a.length-1] === "") a.pop(); return a; })};
+}
+window.__packSetup = function(a,b){ return packSetup(a,b); };
+function unpackSetup(d){
+  if (d && d.v === 2){
+    var g = d.s[2];
+    var m = (d.m||[]).map(function(a){ return {n:a[0], p:a[1]||"", g:g, pn:a[2]||"", pp:a[3]||"", m:a[4]||""}; });
+    return {s:{name:d.s[0], phone:d.s[1], group:g, band:d.s[3], backups:d.s[4],
+               roster: m.map(function(x){ return x.p ? x.n + ", " + x.p : x.n; }).join("\n")}, m:m};
+  }
+  return d;   // older {s, m} links
+}
+function b64u(bytes){ var bin=""; for (var i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]); return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function unb64u(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); while(s.length%4) s+="="; var bin=atob(s), out=new Uint8Array(bin.length); for (var i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+function canZip(){ return typeof CompressionStream === "function" && typeof DecompressionStream === "function"; }
+function zipEnc(obj){   // -> Promise<"z" + base64url(deflate(json))>
+  var data = new TextEncoder().encode(JSON.stringify(obj));
+  var cs = new CompressionStream("deflate-raw"), w = cs.writable.getWriter(); w.write(data); w.close();
+  return new Response(cs.readable).arrayBuffer().then(function(buf){ return "z" + b64u(new Uint8Array(buf)); });
+}
+function zipDec(s){
+  var ds = new DecompressionStream("deflate-raw"), w = ds.writable.getWriter(); w.write(unb64u(s)); w.close();
+  return new Response(ds.readable).text().then(function(t){ return JSON.parse(t); });
+}
 function toast(m){ var t=$("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toast.t); toast.t=setTimeout(function(){t.classList.remove("on");},1800); }
 function show(id){ ["student","chap","landing","bad"].forEach(function(s){ $(s).classList.toggle("hide", s!==id); }); }
 
@@ -608,15 +645,30 @@ function chaperone(){
   // a personal setup link from the trip leader: #chap&setup=...
   (function(){
     var m = location.hash.match(/[#&]setup=([^&]+)/); if (!m) return;
+    function apply(d){
+      d = unpackSetup(d);
+      var st = {name:d.s.name||"", phone:d.s.phone||"", group:d.s.group||"", band:d.s.band||"", roster:d.s.roster||"", backups:d.s.backups||"",
+                ci:S.ci||{}, bus:S.bus||{}, lost:S.lost||{who:"",where:"",wear:"",done:[]}};
+      return {st:st, m:d.m};
+    }
+    if (m[1].charAt(0) === "z"){   // compressed: decode async, store, then reload clean
+      if (!canZip()){ setTimeout(function(){ $("setupErr").classList.remove("hide"); }, 0); history.replaceState(null,"",location.pathname+location.search+"#chap"); return; }
+      zipDec(m[1].slice(1)).then(function(d){
+        var r = apply(d); put(CK, r.st); if (Array.isArray(r.m)) put("trip.master.v1", r.m); put("trip.justSetUp", 1);
+        history.replaceState(null, "", location.pathname + location.search + "#chap"); location.reload();
+      }).catch(function(){ $("setupErr").classList.remove("hide"); history.replaceState(null,"",location.pathname+location.search+"#chap"); });
+      return;
+    }
     try {
-      var d = dec(m[1]);
+      var d = unpackSetup(dec(m[1]));
       S = {name:d.s.name||"", phone:d.s.phone||"", group:d.s.group||"", band:d.s.band||"", roster:d.s.roster||"", backups:d.s.backups||"",
            ci:S.ci||{}, bus:S.bus||{}, lost:S.lost||{who:"",where:"",wear:"",done:[]}};
       save(); if (Array.isArray(d.m)) put("trip.master.v1", d.m);
       setTimeout(function(){ toast("You're all set up!"); }, 300);
-    } catch(e){ setTimeout(function(){ toast("That setup link didn't work"); }, 300); }
+    } catch(e){ setTimeout(function(){ $("setupErr").classList.remove("hide"); }, 0); }
     history.replaceState(null, "", location.pathname + location.search + "#chap");   // keep names out of the address bar
   })();
+  if (get("trip.justSetUp", 0)){ put("trip.justSetUp", 0); setTimeout(function(){ toast("You're all set up!"); }, 300); }
   function copyStr(t, msg){
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function(){ toast(msg); }, function(){
       var ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); toast(msg); }catch(e){} ta.remove(); });
@@ -760,6 +812,7 @@ function chaperone(){
   function teamRow(g){ var t = team[g] || {}; return {g:g, n: t.n != null ? t.n : g.replace(/'s group$/i,"").trim(), p: t.p || "", k: t.k || ""}; }
   function renderTeam(){
     var gs = groupsList(); $("teamCard").classList.toggle("hide", !gs.length); if (!gs.length) return;
+    setTimeout(warmZip, 0);
     if ($("teamRows").contains(document.activeElement)) return;   // don't redraw while typing
     $("teamRows").innerHTML = gs.map(function(g){
       var r = teamRow(g), cnt = master.filter(function(x){return x.g===g;}).length;
@@ -768,19 +821,21 @@ function chaperone(){
         '<label>Chaperone name</label><input data-f="n" value="'+esc(r.n)+'">' +
         '<label>Cell number</label><input data-f="p" type="tel" inputmode="tel" value="'+esc(r.p)+'" placeholder="912-555-0123">' +
         '<label>BAND chat link</label><input data-f="k" type="url" inputmode="url" value="'+esc(r.k)+'" placeholder="https://band.us/...">' +
-        '<div class="row" style="margin-top:10px"><button class="btn primary" data-a="setup">Copy setup link</button><button class="btn" data-a="student">Copy student link</button></div>' +
+        '<div class="row" style="margin-top:10px"><button class="btn primary" data-a="qr">Show setup QR</button><button class="btn" data-a="setup">Copy setup link</button></div>' +
+        '<button class="btn" data-a="student" style="margin-top:8px">Copy student link</button>' +
         '<button class="btn ghost" data-a="me" style="min-height:40px;font-size:14px;margin-top:6px">This is me: set up this phone</button></div>';
     }).join("");
   }
   $("teamRows").addEventListener("input", function(e){
     var c = e.target.closest("[data-g]"), f = e.target.dataset.f; if (!c || !f) return;
     var g = c.dataset.g; team[g] = teamRow(g); team[g][f] = e.target.value.trim(); put(TK, team);
+    clearTimeout(warmZip.t); warmZip.t = setTimeout(warmZip, 250);
   });
-  function buildFor(g){
+  function buildFor(g, quiet){
     var rows = groupsList().map(teamRow), r = teamRow(g), band = r.k;
     if (band && !/^https?:\/\//i.test(band)) band = "https://" + band;
-    if (!r.n){ toast("Add the chaperone's name"); return null; }
-    if (!/band\.us\//i.test(band || "")){ toast("Add " + r.n + "'s BAND chat link"); return null; }
+    if (!r.n){ if (!quiet) toast("Add the chaperone's name"); return null; }
+    if (!/band\.us\//i.test(band || "")){ if (!quiet) toast("Add " + r.n + "'s BAND chat link"); return null; }
     var others = rows.filter(function(x){ return x.g !== g; });
     var mine = master.filter(function(x){ return x.g === g; });
     return { s: { name:r.n, phone:r.p, group:g, band:band,
@@ -789,6 +844,33 @@ function chaperone(){
              others: others };
   }
   window.__buildFor = buildFor;
+  var zipCache = {};
+  function payloadFor(g, x){ return packSetup(x.s, master.filter(function(m){ return m.g === g; })); }
+  function setupUrl(g, x){   // compressed if ready, else compact plain (both work)
+    var base = location.href.split("#")[0] + "#chap&setup=", p = payloadFor(g, x), key = JSON.stringify(p);
+    return (zipCache[g] && zipCache[g].key === key) ? base + zipCache[g].val : base + enc(p);
+  }
+  function warmZip(){
+    if (!canZip()) return;
+    groupsList().forEach(function(g){
+      var r = teamRow(g); if (!r.n || !/band\.us\//i.test(r.k||"")) return;
+      var x = buildFor(g, true); if (!x) return;
+      var p = payloadFor(g, x), key = JSON.stringify(p);
+      if (zipCache[g] && zipCache[g].key === key) return;
+      zipEnc(p).then(function(v){ zipCache[g] = {key:key, val:v}; });
+    });
+  }
+  window.__setupUrl = function(g){ var x = buildFor(g); return x ? setupUrl(g, x) : null; };
+  window.__warmZip = warmZip;
+  function showSetupQR(name, url){
+    var box = $("setupQR");
+    try {
+      var q = qrcode(0, "L"); q.addData(url); q.make();
+      box.querySelector(".qrwrap").innerHTML = q.createSvgTag({cellSize:4, margin:4, scalable:true});
+      box.querySelector(".qrname").textContent = name;
+      box.classList.remove("hide"); box.scrollIntoView({behavior:"smooth"});
+    } catch(e){ toast("Too much info for a QR code. Text the setup link instead."); }
+  }
   $("teamRows").addEventListener("click", function(e){
     var b = e.target.closest("button[data-a]"); if (!b) return;
     var g = b.closest("[data-g]").dataset.g, x = buildFor(g); if (!x) return;
@@ -797,9 +879,13 @@ function chaperone(){
       copyStr(base + "#s=" + enc({c:x.s.name, k:x.s.band, g:g, b:x.others.map(function(o){ return {n:o.n}; })}), "Student link for " + g + " copied");
       return;
     }
-    var url = base + "#chap&setup=" + enc({s:x.s, m:master});
+    // "this is me" keeps the full roster on this phone; links for others carry only their own group (much shorter)
+    if (b.dataset.a === "me"){
+      // keep the whole roster on the leader's phone: other groups' students keep their own group names
+      location.href = base + "#chap&setup=" + enc({s:x.s, m:master}); return; }
+    var url = setupUrl(g, x);
     if (b.dataset.a === "setup") copyStr(url, "Setup link for " + x.s.name + " copied. Text it to them.");
-    else location.href = url;   // "this is me": the hash change reloads the page with the setup applied
+    if (b.dataset.a === "qr") showSetupQR(x.s.name, url);
   });
   renderMaster();
   renderDone();

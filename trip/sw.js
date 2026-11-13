@@ -1,6 +1,6 @@
 // Offline support for the trip page. Network first (so edits to trip-config.js arrive),
 // falling back to the saved copy when the park's signal is bad or gone.
-const CACHE = 'band-trip-v8';
+const CACHE = 'band-trip-v9';
 const ASSETS = ['./', './index.html', './trip-config.js?v=3', './qrcode.js', './manifest.webmanifest',
                 './icon-192.png', './icon-512.png', '../assets/shark.png?v=1'];
 
@@ -18,7 +18,7 @@ self.addEventListener('fetch', e => {
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
     try {
-      const res = await Promise.race([fetch(req), timeout(4000)]);
+      const res = await Promise.race([fetch(req, {cache: 'no-cache'}), timeout(4000)]);
       if (res && res.ok) cache.put(req, res.clone());
       return res;
     } catch (err) {
