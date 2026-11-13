@@ -321,6 +321,7 @@
 
   <!-- bus -->
   <div data-p="bus" class="hide">
+    <div class="chips" id="busScope"></div>
     <div class="chips" id="busChips"></div>
     <div id="busBanner"></div>
     <div class="card"><div class="tally" id="busTally">0/0</div><div class="muted small">on the bus</div></div>
@@ -423,17 +424,25 @@ function enc(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).re
 function dec(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); while(s.length%4) s+="="; return JSON.parse(decodeURIComponent(escape(atob(s)))); }
 
 // compact setup payload: {v:2, s:[name, phone, group, band, backups], m:[[name, cell, parentName, parentPhone, medical], ...]}
-function packSetup(st, students){
-  return {v:2, s:[st.name, st.phone||"", st.group, st.band, st.backups||""],
+function packSetup(st, students, everyone){
+  var out = {v:2, s:[st.name, st.phone||"", st.group, st.band, st.backups||""],
           m: students.map(function(x){ var a=[x.n, x.p||"", x.pn||"", x.pp||"", x.m||""]; while (a.length > 1 && a[a.length-1] === "") a.pop(); return a; })};
+  if (everyone && everyone.length){   // other groups: NAMES ONLY, for the whole-bus count
+    var byG = {}, order = [];
+    everyone.forEach(function(x){ if (!x.g || x.g === st.group) return; if (!byG[x.g]){ byG[x.g] = []; order.push(x.g); } byG[x.g].push(x.n); });
+    if (order.length) out.a = order.map(function(g){ return [g, byG[g]]; });
+  }
+  return out;
 }
-window.__packSetup = function(a,b){ return packSetup(a,b); };
+window.__packSetup = function(a,b,c){ return packSetup(a,b,c); };
 function unpackSetup(d){
   if (d && d.v === 2){
     var g = d.s[2];
     var m = (d.m||[]).map(function(a){ return {n:a[0], p:a[1]||"", g:g, pn:a[2]||"", pp:a[3]||"", m:a[4]||""}; });
+    var all = m.map(function(x){ return {n:x.n, g:g}; });
+    (d.a||[]).forEach(function(pair){ pair[1].forEach(function(n){ all.push({n:n, g:pair[0]}); }); });
     return {s:{name:d.s[0], phone:d.s[1], group:g, band:d.s[3], backups:d.s[4],
-               roster: m.map(function(x){ return x.p ? x.n + ", " + x.p : x.n; }).join("\n")}, m:m};
+               roster: m.map(function(x){ return x.p ? x.n + ", " + x.p : x.n; }).join("\n")}, m:m, all:all};
   }
   return d;   // older {s, m} links
 }
@@ -650,12 +659,12 @@ function chaperone(){
       d = unpackSetup(d);
       var st = {name:d.s.name||"", phone:d.s.phone||"", group:d.s.group||"", band:d.s.band||"", roster:d.s.roster||"", backups:d.s.backups||"",
                 ci:S.ci||{}, bus:S.bus||{}, lost:S.lost||{who:"",where:"",wear:"",done:[]}};
-      return {st:st, m:d.m};
+      return {st:st, m:d.m, all:d.all};
     }
     if (m[1].charAt(0) === "z"){   // compressed: decode async, store, then reload clean
       if (!canZip()){ setTimeout(function(){ $("setupErr").classList.remove("hide"); }, 0); history.replaceState(null,"",location.pathname+location.search+"#chap"); return; }
       zipDec(m[1].slice(1)).then(function(d){
-        var r = apply(d); put(CK, r.st); if (Array.isArray(r.m)) put("trip.master.v1", r.m); put("trip.justSetUp", 1);
+        var r = apply(d); put(CK, r.st); if (Array.isArray(r.m)) put("trip.master.v1", r.m); put("trip.all.v1", r.all || []); put("trip.justSetUp", 1);
         history.replaceState(null, "", location.pathname + location.search + "#chap"); location.reload();
       }).catch(function(){ $("setupErr").classList.remove("hide"); history.replaceState(null,"",location.pathname+location.search+"#chap"); });
       return;
@@ -664,7 +673,7 @@ function chaperone(){
       var d = unpackSetup(dec(m[1]));
       S = {name:d.s.name||"", phone:d.s.phone||"", group:d.s.group||"", band:d.s.band||"", roster:d.s.roster||"", backups:d.s.backups||"",
            ci:S.ci||{}, bus:S.bus||{}, lost:S.lost||{who:"",where:"",wear:"",done:[]}};
-      save(); if (Array.isArray(d.m)) put("trip.master.v1", d.m);
+      save(); if (Array.isArray(d.m)) put("trip.master.v1", d.m); put("trip.all.v1", d.all || []);
       setTimeout(function(){ toast("You're all set up!"); }, 300);
     } catch(e){ setTimeout(function(){ $("setupErr").classList.remove("hide"); }, 0); }
     history.replaceState(null, "", location.pathname + location.search + "#chap");   // keep names out of the address bar
@@ -846,7 +855,7 @@ function chaperone(){
   }
   window.__buildFor = buildFor;
   var zipCache = {};
-  function payloadFor(g, x){ return packSetup(x.s, master.filter(function(m){ return m.g === g; })); }
+  function payloadFor(g, x){ return packSetup(x.s, master.filter(function(m){ return m.g === g; }), master); }
   function setupUrl(g, x){   // compressed if ready, else compact plain (both work)
     var base = location.href.split("#")[0] + "#chap&setup=", p = payloadFor(g, x), key = JSON.stringify(p);
     return (zipCache[g] && zipCache[g].key === key) ? base + zipCache[g].val : base + enc(p);
@@ -912,6 +921,17 @@ function chaperone(){
     S.bus[busKey]=S.bus[busKey]||{}; if (S.bus[busKey][b.dataset.n]) delete S.bus[busKey][b.dataset.n]; else S.bus[busKey][b.dataset.n]=nowStr();
     save(); render();
   };
+  var busScope = "all";
+  $("busScope").onclick = function(e){ var b=e.target.closest(".chip"); if(!b) return; busScope=b.dataset.s; render(); };
+  function allStudents(){   // everyone on the trip: names + groups (whole-bus count)
+    var a = get("trip.all.v1", []) || [], mm = (master||[]).map(function(x){ return {n:x.n, g:x.g||S.group}; });
+    var best = a.length >= mm.length ? a.slice() : mm;
+    var have = {}; best.forEach(function(x){ have[x.n] = 1; });
+    roster().forEach(function(x){ if (!have[x.n]) best.push({n:x.n, g:S.group || "My group"}); });   // hand-typed names
+    return best;
+  }
+  function myGroup(){ return roster().map(function(x){ return {n:x.n, g:S.group || "My group"}; }); }
+  window.__allStudents = function(){ return allStudents(); };
   $("busReset").onclick = function(){ if (confirmTap(this)) { S.bus[busKey]={}; save(); render(); } };
 
   // lost
@@ -956,8 +976,8 @@ function chaperone(){
     $("lostInfo").innerHTML = info; $("lostInfo").classList.toggle("hide", !info);
   }
 
-  function nameRows(map, now, deadline){
-    return roster().map(function(s){
+  function nameRows(map, now, deadline, list){
+    return (list || roster()).map(function(s){
       var t = map && map[s.n], late = !t && deadline && now > deadline;
       return '<button class="name-row'+(t?" ok":late?" late":"")+'" data-n="'+esc(s.n)+'"><span class="tick">'+(t?"✓":"")+'</span><span class="nm">'+esc(s.n)+'</span><span class="st">'+(t? t : late? "overdue" : "")+'</span></button>';
     }).join("") || '<div class="card muted">Add your students on the Setup tab first.</div>';
@@ -973,13 +993,31 @@ function chaperone(){
     $("ciSub").textContent = c.label + (c.inPerson ? " (in person" + (c.place? ": "+c.place : "") + ")" : " (text)");
     $("ciList").innerHTML = nameRows(m, now, dl);
     // bus
-    var bm = S.bus[busKey]||{}, on = R.filter(function(s){return bm[s.n];}).length;
-    $("busTally").textContent = on + "/" + R.length;
-    $("busBanner").innerHTML = R.length ? (on===R.length ? '<div class="banner good">Everyone is here ✔</div>' : '<div class="banner bad">Missing: '+esc(R.filter(function(s){return !bm[s.n];}).map(function(s){return s.n;}).join(", "))+'</div>') : "";
-    $("busList").innerHTML = nameRows(bm, now, null);
-    var bl = BUS.filter(function(x){return x.k===busKey;})[0].l, missing = R.filter(function(s){return !bm[s.n];}).map(function(s){return s.n;});
-    var rpt = "🚌 " + (S.group||"My group") + " (" + (S.name||"chaperone") + ") — " + bl + ": " + on + "/" + R.length +
-      (missing.length ? ". Missing: " + missing.join(", ") : ". All here ✔");
+    var ALL = allStudents(), mine = myGroup(), multi = ALL.length > mine.length;
+    if (!multi) busScope = "mine";
+    $("busScope").innerHTML = multi ? '<button class="chip'+(busScope==="all"?" on":"")+'" data-s="all">Whole bus ('+ALL.length+')</button>' +
+      '<button class="chip'+(busScope==="mine"?" on":"")+'" data-s="mine">My group ('+mine.length+')</button>' : "";
+    var BL = busScope === "all" ? ALL : mine;
+    var bm = S.bus[busKey]||{}, on = BL.filter(function(s){return bm[s.n];}).length;
+    $("busTally").textContent = on + "/" + BL.length;
+    var miss = BL.filter(function(s){return !bm[s.n];});
+    function missTxt(x){ return x.n + (busScope === "all" && x.g !== S.group ? " (" + x.g.replace(/'s group$/i,"") + ")" : ""); }
+    function byGroupCounts(){ var c = {}, o = []; miss.forEach(function(x){ if (!c[x.g]){ c[x.g] = 0; o.push(x.g); } c[x.g]++; });
+      return o.map(function(g){ return g.replace(/'s group$/i,"") + " " + c[g]; }).join(", "); }
+    var fewLeft = miss.length <= 8;
+    $("busBanner").innerHTML = BL.length ? (on===BL.length ? '<div class="banner good">Everyone is here ✔</div>' :
+      '<div class="banner bad">' + (fewLeft ? 'Missing: '+esc(miss.map(missTxt).join(", ")) : esc(miss.length + ' not checked yet' + (busScope === "all" ? ' (' + byGroupCounts() + ')' : ''))) + '</div>') : "";
+    if (busScope === "all"){
+      var groups = [S.group]; ALL.forEach(function(x){ if (groups.indexOf(x.g) < 0) groups.push(x.g); });
+      $("busList").innerHTML = groups.map(function(g){
+        var L = ALL.filter(function(x){ return x.g === g; }); if (!L.length) return "";
+        var c = L.filter(function(x){ return bm[x.n]; }).length;
+        return '<h2 style="margin:14px 2px 8px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-hi)">'+esc(g)+' \u00b7 '+c+'/'+L.length+'</h2>' + nameRows(bm, now, null, L);
+      }).join("");
+    } else $("busList").innerHTML = nameRows(bm, now, null, mine);
+    var bl = BUS.filter(function(x){return x.k===busKey;})[0].l, missing = miss.map(missTxt);
+    var rpt = "🚌 " + (busScope === "all" ? "Whole bus" : (S.group||"My group")) + " (" + (S.name||"chaperone") + ") — " + bl + ": " + on + "/" + BL.length +
+      (!missing.length ? ". All here ✔" : fewLeft ? ". Missing: " + missing.join(", ") : ". Still missing " + missing.length + (busScope === "all" ? " (" + byGroupCounts() + ")" : ""));
     var BB = parseLines(S.backups).filter(function(b){return b.p;});
     $("busReport").innerHTML = '<h2>Send this count</h2><div class="small muted" style="margin-bottom:8px">'+esc(rpt)+'</div>' +
       (BB.length ? BB.map(function(b){ return '<a class="btn" href="'+smsHref(b.p, rpt)+'">Text to '+esc(b.n)+'</a>'; }).join("") : '<p class="muted small" style="margin:0">Add the other chaperones on the Setup tab to send this.</p>');

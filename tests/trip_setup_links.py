@@ -15,10 +15,12 @@ first=["Jordan","Ava","Marcus","Maya","Chris","Elijah","Sophia","Isaiah","Camila
 last=["Washington","Rodriguez","Thompson","Jefferson","Williams","Henderson","Montgomery","Alexander"]
 groups=[("Mrs. Graham's Group",10),("Mr. Graham's Group",7),("Ms. Kaitlyn's Group",9)]
 meds=["","","","Peanut allergy, carries EpiPen","Asthma, has inhaler","","Type 1 diabetes, insulin pump; snacks in bag","",""]
-lines=[]
+lines=[]; used=set()
 for g,n in groups:
     for i in range(n):
-        fn,ln=random.choice(first),random.choice(last)
+        while True:
+            fn,ln=random.choice(first),random.choice(last)
+            if (fn,ln) not in used: used.add((fn,ln)); break
         lines.append(f"{fn} {ln} |  | {g} | {random.choice(first)} {ln} | 912-555-{random.randint(1000,9999)} | {random.choice(meds)}")
 roster="Copy into trip tool\n"+"\n".join(lines)
 with sync_playwright() as pw:
@@ -52,6 +54,28 @@ with sync_playwright() as pw:
     e.goto(urls["Mrs. Graham's Group"].replace(urls["Mrs. Graham's Group"].split("#")[0], base)); e.wait_for_timeout(500)
     sd=e.inner_text("#setupDone") if e.is_visible("#setupDone") else ""
     check("Mrs. Graham" in sd and "10 students" in sd, "Emily's phone set up from group link: "+sd.replace(chr(10)," | "))
+    e.click("[data-t=bus]"); e.wait_for_timeout(150)
+    scope=e.locator("#busScope .chip").all_inner_texts()
+    check(scope==["Whole bus (26)","My group (10)"], "bus scope chips on Emily's phone: "+str(scope))
+    check(e.inner_text("#busTally")=="0/26" and e.locator("#busList .name-row").count()==26 and e.locator("#busList h2").count()==3, "whole-bus count lists all 26 in 3 groups")
+    heads=e.locator("#busList h2").all_inner_texts()
+    check(heads[0].upper().startswith("MRS. GRAHAM'S GROUP"), "her own group is listed first: "+str(heads))
+    e.locator("#busList .name-row").first.click(); e.wait_for_timeout(100)
+    check(e.inner_text("#busTally")=="1/26" and "25 not checked yet (Mrs. Graham 9, Mr. Graham 7, Ms. Kaitlyn 9)" in e.inner_text("#busBanner"), "many missing: per-group counts: "+e.inner_text("#busBanner"))
+    rows=e.locator("#busList .name-row")
+    e.evaluate("for (let i=1;i<18;i++) document.querySelectorAll('#busList .name-row')[i].click()")
+    e.wait_for_timeout(100)
+    check("Missing:" in e.inner_text("#busBanner") and "(Ms. Kaitlyn)" in e.inner_text("#busBanner") and e.inner_text("#busTally")=="18/26", "8 or fewer left: names tagged by group: "+e.inner_text("#busBanner"))
+    e.evaluate("for (let i=1;i<18;i++) document.querySelectorAll('#busList .name-row')[i].click()")
+    e.wait_for_timeout(100)
+    rpt=e.inner_text("#busReport"); check("Whole bus (Mrs. Graham)" in rpt and "1/26" in rpt, "whole-bus report text")
+    if SHOTS: e.screenshot(path=os.path.join(SHOTS,"bus-whole.png"), full_page=True)
+    e.click("#busScope .chip[data-s=mine]"); e.wait_for_timeout(100)
+    check(e.inner_text("#busTally")=="1/10" and e.locator("#busList .name-row").count()==10, "My group shows her 10")
+    e.click("#busScope .chip[data-s=all]")
+    # other groups' parent/medical info is NOT on her phone
+    m=e.evaluate("JSON.parse(localStorage.getItem('trip.master.v1'))")
+    check(len(m)==10 and all(x["g"]=="Mrs. Graham's Group" for x in m), "only her own group's contact/medical info is stored")
     e.click("[data-t=lost]"); opts=e.locator("#lostWho option").count()
     check(opts==11, "lost tab lists her 10 students (+placeholder): %d"%opts)
     e.goto(plain.replace(plain.split("#")[0], base)); e.wait_for_timeout(500)
