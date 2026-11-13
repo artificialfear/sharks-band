@@ -9,13 +9,14 @@ window.TRIP = {
   band: "Islands Band",
   date: "2026-11-14",               // Saturday
 
-  // Check-ins during park time (10:00 AM - 6:30 PM).
+  // Check-ins (Mat, Nov 13): 8 AM, 12, 2, 4, 6 PM.
   // inPerson: true = meet your chaperone face to face instead of messaging.
   checkins: [
-    { time: "11:00", label: "Check-in 1" },
-    { time: "13:00", label: "Check-in 2" },
-    { time: "15:00", label: "Check-in 3" },
-    { time: "17:00", label: "Check-in 4" }
+    { time: "08:00", label: "Check-in 1" },
+    { time: "12:00", label: "Check-in 2" },
+    { time: "14:00", label: "Check-in 3" },
+    { time: "16:00", label: "Check-in 4" },
+    { time: "18:00", label: "Check-in 5 + meet up at TBD location" }
   ],
 
   // Day schedule shown to students and chaperones.
@@ -24,7 +25,7 @@ window.TRIP = {
     { time: "04:45", what: "Arrive at Islands High School for check-in and boarding" },
     { time: "05:00", what: "Bus leaves for Orlando (one rest stop on the way, snack and juice included)" },
     { time: "10:00", what: "Arrive at Universal Orlando. Park-to-Park: Universal Studios and Islands of Adventure" },
-    { time: "18:00", what: "Meet up at TBD location", remind: true },
+    { time: "18:00", what: "Meet up at TBD location" },   // the 6:00 check-in reminder covers this
     { time: "18:30", what: "Bus leaves for home (one rest stop on the way)" },
     { time: "23:30", what: "Arrive back at Islands High School" }
   ],
