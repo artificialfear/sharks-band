@@ -1,7 +1,7 @@
 // Offline support for the trip page. Network first (so edits to trip-config.js arrive),
 // falling back to the saved copy when the park's signal is bad or gone.
-const CACHE = 'band-trip-v9';
-const ASSETS = ['./', './index.html', './trip-config.js?v=3', './qrcode.js', './manifest.webmanifest',
+const CACHE = 'band-trip-v10';
+const ASSETS = ['./', './index.html', './trip-config.js?v=4', './qrcode.js', './manifest.webmanifest',
                 './icon-192.png', './icon-512.png', '../assets/shark.png?v=1'];
 
 self.addEventListener('install', e => {

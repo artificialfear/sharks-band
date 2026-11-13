@@ -53,7 +53,7 @@
   ul.clean{list-style:none;margin:0;padding:0}
   ul.clean li{padding:9px 0;border-bottom:1px dashed var(--line);display:flex;gap:12px}
   ul.clean li:last-child{border-bottom:none}
-  .t{flex:none;width:72px;color:var(--teal-hi);font-weight:800;font-variant-numeric:tabular-nums}
+  .t{flex:none;width:84px;white-space:nowrap;color:var(--teal-hi);font-weight:800;font-variant-numeric:tabular-nums}
   .past{opacity:.45}
   .now{color:var(--warn)}
   .tabs{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:6px;padding:8px 0 10px;overflow-x:auto}
@@ -353,6 +353,7 @@
 
   <!-- team -->
   <div data-p="team" class="hide">
+    <div class="card" id="tourCard"></div>
     <div class="card">
       <h2>Text or call the other chaperones</h2>
       <div id="teamList"></div>
@@ -384,7 +385,7 @@
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="trip-config.js?v=3"></script>
+<script src="trip-config.js?v=4"></script>
 <script src="qrcode.js"></script>
 <script>
 (function(){
@@ -990,6 +991,10 @@ function chaperone(){
     var B = parseLines(S.backups);
     $("teamList").innerHTML = B.length ? B.map(function(b){ return '<div style="margin-bottom:10px"><div style="font-weight:800;margin-bottom:6px">'+esc(b.n)+'</div><div class="row"><a class="btn" href="'+telHref(b.p)+'">Call</a><a class="btn" href="'+smsHref(b.p,"")+'">Text</a></div></div>'; }).join("") : '<p class="muted">None added yet.</p>';
     $("cSched").innerHTML = scheduleHTML();
+    var tc = T.tourCompany;
+    $("tourCard").classList.toggle("hide", !tc);
+    if (tc) $("tourCard").innerHTML = '<h2>'+esc(tc.name)+' \u00b7 Trip #'+esc(tc.trip)+'</h2>' +
+      tc.phones.map(function(ph){ return '<a class="btn" href="'+telHref(ph)+'">Call '+esc(tc.name)+' '+esc(ph)+'</a>'; }).join("");
   }
   render(); setInterval(render, 60000);
 }
