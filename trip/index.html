@@ -385,7 +385,7 @@
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="trip-config.js?v=4"></script>
+<script src="trip-config.js?v=5"></script>
 <script src="qrcode.js"></script>
 <script>
 (function(){
@@ -903,7 +903,8 @@ function chaperone(){
 
   // bus
   var busKey = "depart";
-  var BUS = [{k:"depart",l:"Leaving Islands"},{k:"arrive",l:"Off at Universal"},{k:"return",l:"Leaving Universal"},{k:"home",l:"Off at Islands"}];
+  var BUS = [{k:"depart",l:"Leaving Islands"},{k:"stop1",l:"Rest stop (going)"},{k:"arrive",l:"Off at Universal"},
+             {k:"return",l:"Leaving Universal"},{k:"stop2",l:"Rest stop (home)"},{k:"home",l:"Off at Islands"}];
   $("busChips").innerHTML = BUS.map(function(b){return '<button class="chip'+(b.k===busKey?" on":"")+'" data-k="'+b.k+'">'+b.l+'</button>';}).join("");
   $("busChips").onclick = function(e){ var b=e.target.closest(".chip"); if(!b) return; busKey=b.dataset.k; [].forEach.call(this.children,function(c){c.classList.toggle("on",c===b);}); render(); };
   $("busList").onclick = function(e){

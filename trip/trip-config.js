@@ -22,11 +22,11 @@ window.TRIP = {
   // remind: true = also added to students' calendar reminders.
   schedule: [
     { time: "04:45", what: "Arrive at Islands High School for check-in and boarding" },
-    { time: "05:00", what: "Bus leaves for Orlando (rest stop on the way, snack and juice included)" },
+    { time: "05:00", what: "Bus leaves for Orlando (one rest stop on the way, snack and juice included)" },
     { time: "10:00", what: "Arrive at Universal Orlando. Park-to-Park: Universal Studios and Islands of Adventure" },
     { time: "13:00", what: "Lunch meetup with your chaperone (in person)" },
     { time: "18:15", what: "Be at the bus. It leaves at 6:30 sharp.", remind: true },
-    { time: "18:30", what: "Bus leaves for home (rest stops as needed)" },
+    { time: "18:30", what: "Bus leaves for home (one rest stop on the way)" },
     { time: "23:30", what: "Arrive back at Islands High School" }
   ],
 
@@ -47,7 +47,8 @@ window.TRIP = {
     "Both parks are OK (Park-to-Park). Ask your chaperone before going to CityWalk.",
     "Lunch and dinner are on your own inside the park.",
     "School dress code applies all day.",
-    "Be at the bus by 6:15 PM. It leaves at 6:30."
+    "Be at the bus by 6:15 PM. It leaves at 6:30.",
+    "At rest stops, stay with your buddies and get back on the bus as soon as you're called."
   ],
 
   bring: [
