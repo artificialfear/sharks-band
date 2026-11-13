@@ -228,6 +228,8 @@
 
   <!-- setup -->
   <div data-p="setup">
+    <div class="card hide" id="setupDone"></div>
+    <div id="setupFields">
     <div class="card">
       <h2>You</h2>
       <label for="cName">Your name (as students know you)</label>
@@ -253,7 +255,7 @@
       </details>
       <div id="masterShare" class="hide" style="margin-top:10px">
         <button class="btn" id="masterCopy">Copy roster link for other chaperones</button>
-        <p class="muted small" style="margin:6px 0 0">Text this link only to the other chaperones. It contains every student's name and number.</p>
+        <p class="muted small" style="margin:6px 0 0">Text this link only to the other chaperones. It contains every student's name, parent contact and medical notes.</p>
       </div>
     </div>
     <div class="card hide" id="pickCard">
@@ -270,10 +272,11 @@
     </div>
     <div class="card">
       <h2>Backup chaperones</h2>
-      <p class="muted small" style="margin-top:0">Students see these if they can't reach you. One per line: name, number.</p>
+      <p class="muted small" style="margin-top:0">Students see only these names, never the numbers. One per line: name, number.</p>
       <textarea id="cBackups" style="min-height:80px" placeholder="Mr. Graham, 912-555-0199&#10;Ms. Kaitlynn, 912-555-0177"></textarea>
     </div>
     <button class="btn primary" id="cSave">Save &amp; make my students' link</button>
+    </div>
     <div class="card hide" id="linkCard" style="margin-top:12px">
       <h2>Your group's student link</h2>
       <p class="muted small" style="margin-top:0">Post this link in your group's BAND chat, or have students scan the QR code on the bus. It contains your name and your group's chat link, with no phone numbers.</p>
@@ -284,6 +287,11 @@
         <a class="btn" id="previewLink" href="#" target="_blank" rel="noopener">Preview</a>
       </div>
     </div>
+    <details class="card hide" id="teamCard">
+      <summary style="cursor:pointer;font-weight:800;color:var(--teal-hi)">Trip leader only: set up the other chaperones</summary>
+      <p class="muted small">Fill in each chaperone once. Then tap <b>Copy setup link</b> and text it to that chaperone. When they tap it, their phone is fully set up: name, group, students, BAND chat and backup chaperones. They don't type anything.</p>
+      <div id="teamRows"></div>
+    </details>
     <div class="card small muted">
       <b style="color:var(--text)">Morning tip:</b> take a photo of your group at the park entrance. If someone goes missing, you'll know exactly what they're wearing.
     </div>
@@ -596,6 +604,32 @@ function chaperone(){
   show("chap");
   var S = chapState();
   function save(){ put(CK, S); }
+  var editing = false;
+  // a personal setup link from the trip leader: #chap&setup=...
+  (function(){
+    var m = location.hash.match(/[#&]setup=([^&]+)/); if (!m) return;
+    try {
+      var d = dec(m[1]);
+      S = {name:d.s.name||"", phone:d.s.phone||"", group:d.s.group||"", band:d.s.band||"", roster:d.s.roster||"", backups:d.s.backups||"",
+           ci:S.ci||{}, bus:S.bus||{}, lost:S.lost||{who:"",where:"",wear:"",done:[]}};
+      save(); if (Array.isArray(d.m)) put("trip.master.v1", d.m);
+      setTimeout(function(){ toast("You're all set up!"); }, 300);
+    } catch(e){ setTimeout(function(){ toast("That setup link didn't work"); }, 300); }
+    history.replaceState(null, "", location.pathname + location.search + "#chap");   // keep names out of the address bar
+  })();
+  function copyStr(t, msg){
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function(){ toast(msg); }, function(){
+      var ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); toast(msg); }catch(e){} ta.remove(); });
+  }
+  function renderDone(){
+    var n = parseLines(S.roster).length, ok = !!(S.name && /band\.us\//i.test(S.band||"") && n);
+    $("setupDone").classList.toggle("hide", !ok);
+    $("setupFields").classList.toggle("hide", ok && !editing);
+    if (ok) $("setupDone").innerHTML = '<h2>You\'re all set \u2714</h2><div class="big">'+esc(S.name)+'</div><div class="muted">'+esc(S.group)+' \u00b7 '+n+' students</div>' +
+      '<p class="small" style="margin:10px 0 0"><b>Last step:</b> post your students\' link (below) in your group\'s BAND chat. During the trip, use the <b>Check-ins</b> and <b>Bus count</b> tabs.</p>' +
+      '<button class="btn ghost" id="editSetup" style="min-height:40px;font-size:14px;margin-top:8px">'+(editing?"Hide setup details":"Change my setup")+'</button>';
+  }
+  $("setupDone").onclick = function(e){ if (e.target.id === "editSetup"){ editing = !editing; renderDone(); } };
 
   // tabs
   $("tabs").onclick = function(e){
@@ -624,7 +658,7 @@ function chaperone(){
     var bl = $("cBand").value.trim(); if (bl && !/^https?:\/\//i.test(bl)) bl = "https://" + bl; S.band = bl;
     S.roster=$("cRoster").value; S.backups=$("cBackups").value;
     if (!S.name || !/band\.us\//i.test(S.band)){ toast("Add your name and your group's BAND chat link"); return; }
-    save(); showLink(); toast("Saved"); $("linkCard").scrollIntoView({behavior:"smooth"});
+    save(); editing = false; renderDone(); showLink(); toast("Saved"); $("linkCard").scrollIntoView({behavior:"smooth"});
   };
   $("copyLink").onclick = function(){
     var url = studentLink();
@@ -675,6 +709,7 @@ function chaperone(){
   var pickGroup = "", pickQ = "";
   function chosen(){ var o = {}; parseLines(S.roster).forEach(function(x){ o[x.n] = 1; }); return o; }
   function renderMaster(){
+    if (typeof renderTeam === "function" && typeof team !== "undefined") renderTeam();
     $("masterStatus").textContent = master.length ? master.length + " students loaded on this phone." : "No roster loaded yet.";
     $("masterShare").classList.toggle("hide", !master.length);
     $("pickCard").classList.toggle("hide", !master.length);
@@ -685,7 +720,7 @@ function chaperone(){
       (pickGroup ? '<button class="chip" data-all="1">Select all in '+esc(pickGroup)+'</button>' : "") : "";
     var ch = chosen(), q = pickQ.toLowerCase();
     $("pickList").innerHTML = master.filter(function(x){ return (!pickGroup || x.g === pickGroup) && (!q || x.n.toLowerCase().indexOf(q) > -1); })
-      .map(function(x){ return '<label class="pick"><input type="checkbox" data-n="'+esc(x.n)+'"'+(ch[x.n]?" checked":"")+'><span class="nm">'+esc(x.n)+'</span><span class="g">'+esc([x.g, x.p ? "" : "no phone #"].filter(Boolean).join(" \u00b7 "))+'</span></label>'; }).join("")
+      .map(function(x){ return '<label class="pick"><input type="checkbox" data-n="'+esc(x.n)+'"'+(ch[x.n]?" checked":"")+'><span class="nm">'+esc(x.n)+'</span><span class="g">'+esc([x.g].filter(Boolean).join(" \u00b7 "))+'</span></label>'; }).join("")
       || '<p class="muted small">No matches.</p>';
   }
   function setRosterFrom(namesSet){
@@ -718,7 +753,56 @@ function chaperone(){
     setRosterFrom(ch);
   };
   $("cRoster").addEventListener("change", function(){ S.roster = this.value; save(); renderMaster(); render(); });
+
+  // ---------- trip leader: build each chaperone's setup link ----------
+  var TK = "trip.team.v1", team = get(TK, {});
+  function groupsList(){ var g = []; master.forEach(function(x){ if (x.g && g.indexOf(x.g) < 0) g.push(x.g); }); return g; }
+  function teamRow(g){ var t = team[g] || {}; return {g:g, n: t.n != null ? t.n : g.replace(/'s group$/i,"").trim(), p: t.p || "", k: t.k || ""}; }
+  function renderTeam(){
+    var gs = groupsList(); $("teamCard").classList.toggle("hide", !gs.length); if (!gs.length) return;
+    if ($("teamRows").contains(document.activeElement)) return;   // don't redraw while typing
+    $("teamRows").innerHTML = gs.map(function(g){
+      var r = teamRow(g), cnt = master.filter(function(x){return x.g===g;}).length;
+      return '<div class="card" style="background:var(--panel2);margin-top:10px" data-g="'+esc(g)+'">' +
+        '<div style="font-weight:800">'+esc(g)+' <span class="muted small">('+cnt+' students)</span></div>' +
+        '<label>Chaperone name</label><input data-f="n" value="'+esc(r.n)+'">' +
+        '<label>Cell number</label><input data-f="p" type="tel" inputmode="tel" value="'+esc(r.p)+'" placeholder="912-555-0123">' +
+        '<label>BAND chat link</label><input data-f="k" type="url" inputmode="url" value="'+esc(r.k)+'" placeholder="https://band.us/...">' +
+        '<div class="row" style="margin-top:10px"><button class="btn primary" data-a="setup">Copy setup link</button><button class="btn" data-a="student">Copy student link</button></div>' +
+        '<button class="btn ghost" data-a="me" style="min-height:40px;font-size:14px;margin-top:6px">This is me: set up this phone</button></div>';
+    }).join("");
+  }
+  $("teamRows").addEventListener("input", function(e){
+    var c = e.target.closest("[data-g]"), f = e.target.dataset.f; if (!c || !f) return;
+    var g = c.dataset.g; team[g] = teamRow(g); team[g][f] = e.target.value.trim(); put(TK, team);
+  });
+  function buildFor(g){
+    var rows = groupsList().map(teamRow), r = teamRow(g), band = r.k;
+    if (band && !/^https?:\/\//i.test(band)) band = "https://" + band;
+    if (!r.n){ toast("Add the chaperone's name"); return null; }
+    if (!/band\.us\//i.test(band || "")){ toast("Add " + r.n + "'s BAND chat link"); return null; }
+    var others = rows.filter(function(x){ return x.g !== g; });
+    var mine = master.filter(function(x){ return x.g === g; });
+    return { s: { name:r.n, phone:r.p, group:g, band:band,
+                  roster: mine.map(function(x){ return x.p ? x.n + ", " + x.p : x.n; }).join("\n"),
+                  backups: others.map(function(o){ return o.p ? o.n + ", " + o.p : o.n; }).join("\n") },
+             others: others };
+  }
+  window.__buildFor = buildFor;
+  $("teamRows").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-a]"); if (!b) return;
+    var g = b.closest("[data-g]").dataset.g, x = buildFor(g); if (!x) return;
+    var base = location.href.split("#")[0];
+    if (b.dataset.a === "student"){
+      copyStr(base + "#s=" + enc({c:x.s.name, k:x.s.band, g:g, b:x.others.map(function(o){ return {n:o.n}; })}), "Student link for " + g + " copied");
+      return;
+    }
+    var url = base + "#chap&setup=" + enc({s:x.s, m:master});
+    if (b.dataset.a === "setup") copyStr(url, "Setup link for " + x.s.name + " copied. Text it to them.");
+    else location.href = url;   // "this is me": the hash change reloads the page with the setup applied
+  });
   renderMaster();
+  renderDone();
 
   // check-ins
   var round = (function(){ var now=new Date(), r=0; T.checkins.forEach(function(c,i){ var d=at(c.time); if(d && d<=new Date(now.getTime()+30*60000)) r=i; }); return r; })();
