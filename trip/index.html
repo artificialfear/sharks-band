@@ -93,6 +93,17 @@
   .snav button.on{color:var(--teal-hi);background:var(--panel2)}
   .snav button.sos.on{color:#ffd6d6;background:#3a1416}
   #helpJump{margin-bottom:12px}
+  .seclbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:10px 2px 6px}
+  #busScope{display:flex;gap:4px;background:#070a0b;border:1px solid var(--line);border-radius:14px;padding:4px}
+  #busScope .chip{flex:1;border:none;border-radius:10px;background:none;padding:12px 6px;font-size:16px;font-weight:800;color:var(--muted)}
+  #busScope .chip.on{background:var(--teal);color:#041011}
+  #busChips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  #busChips .chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border-radius:12px;padding:9px 11px;
+    background:var(--panel);border:2px solid var(--line);font-size:14px;font-weight:800;color:var(--text)}
+  #busChips .chip .bn{color:var(--teal-hi);font-size:12px;letter-spacing:.06em}
+  #busChips .chip .bc{font-size:13px;font-weight:700;color:var(--muted)}
+  #busChips .chip.done .bc{color:var(--good)}
+  #busChips .chip.on{border-color:var(--teal-hi);background:#0f2a29}
   .ctabs button.tab{flex:1;border:none;background:none;color:var(--muted);border-radius:12px;padding:6px 2px;font-size:12px;font-weight:800}
   .ctabs button.tab.on{background:var(--panel2);color:var(--teal-hi);border:none}
   .ctabs button.tab.sos.on{background:#3a1416;color:#ffd6d6}
@@ -321,8 +332,12 @@
 
   <!-- bus -->
   <div data-p="bus" class="hide">
-    <div class="chips" id="busScope"></div>
-    <div class="chips" id="busChips"></div>
+    <div id="busScopeWrap">
+      <div class="seclbl">Who are you counting?</div>
+      <div id="busScope"></div>
+    </div>
+    <div class="seclbl">Which boarding?</div>
+    <div id="busChips"></div>
     <div id="busBanner"></div>
     <div class="card"><div class="tally" id="busTally">0/0</div><div class="muted small">on the bus</div></div>
     <div id="busList"></div>
@@ -930,7 +945,13 @@ function chaperone(){
     } catch(e){ setTimeout(function(){ toast("That bus count link didn't load. Ask them to send it again."); }, 300); }
     history.replaceState(null, "", location.pathname + location.search + "#chap");
   })();
-  $("busChips").innerHTML = BUS.map(function(b){return '<button class="chip'+(b.k===busKey?" on":"")+'" data-k="'+b.k+'">'+b.l+'</button>';}).join("");
+  function renderBoardings(list){
+    $("busChips").innerHTML = BUS.map(function(b, i){
+      var m = S.bus[b.k] || {}, c = list.filter(function(x){ return m[x.n]; }).length, done = list.length && c === list.length;
+      return '<button class="chip'+(b.k===busKey?" on":"")+(done?" done":"")+'" data-k="'+b.k+'"><span class="bn">'+(i+1)+'</span>'+b.l+
+        '<span class="bc">'+(c ? c+'/'+list.length+(done?' \u2714':'') : 'not started')+'</span></button>';
+    }).join("");
+  }
   $("busChips").onclick = function(e){ var b=e.target.closest(".chip"); if(!b) return; busKey=b.dataset.k; [].forEach.call(this.children,function(c){c.classList.toggle("on",c===b);}); render(); };
   $("busList").onclick = function(e){
     var b=e.target.closest(".name-row"); if(!b) return;
@@ -1025,9 +1046,11 @@ function chaperone(){
     // bus
     var ALL = allStudents(), mine = myGroup(), multi = ALL.length > mine.length;
     var scope = multi ? busScope : "mine";
+    $("busScopeWrap").classList.toggle("hide", !multi);
     $("busScope").innerHTML = multi ? '<button class="chip'+(scope==="all"?" on":"")+'" data-s="all">Whole bus ('+ALL.length+')</button>' +
       '<button class="chip'+(scope==="mine"?" on":"")+'" data-s="mine">My group ('+mine.length+')</button>' : "";
     var BL = scope === "all" ? ALL : mine;
+    renderBoardings(BL);
     var bm = S.bus[busKey]||{}, on = BL.filter(function(s){return bm[s.n];}).length;
     $("busTally").textContent = on + "/" + BL.length;
     var miss = BL.filter(function(s){return !bm[s.n];});

@@ -42,8 +42,9 @@ with sync_playwright() as pw:
     shot(p,"c2-checkins")
     p.click("[data-t=bus]"); p.locator("#busList .name-row").nth(1).click()
     check("Missing: Jordan Smith, Marcus Lee" in p.inner_text("#busBanner"),"bus banner lists missing")
-    chips=[x.strip() for x in p.locator("#busChips .chip").all_inner_texts()]
-    check(chips==["Leaving Islands","Rest stop (going)","Off at Universal","Leaving Universal","Rest stop (home)","Off at Islands"], "6 bus counts incl. rest stops: "+str(chips))
+    chips=[x.split(chr(10))[1].strip() for x in p.locator("#busChips .chip").all_inner_texts()]
+    check(chips==["Leaving Islands","Rest stop (going)","Off at Universal","Leaving Universal","Rest stop (home)","Off at Islands"], "6 numbered boardings incl. rest stops: "+str(chips))
+    check("1/3" in p.inner_text("#busChips .chip[data-k=depart]") and "not started" in p.inner_text("#busChips .chip[data-k=stop1]"), "each boarding shows its own count")
     p.click("#busChips .chip[data-k=stop1]"); p.wait_for_timeout(100)
     check(p.inner_text("#busTally")=="0/3" and "Rest stop (going): 0/3" in p.inner_text("#busReport"), "rest stop count is separate, with its own report")
     shot(p,"c3b-bus-reststop")
