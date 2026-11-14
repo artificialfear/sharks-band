@@ -100,6 +100,9 @@
   #busScope{display:flex;gap:4px;background:#070a0b;border:1px solid var(--line);border-radius:14px;padding:4px}
   #busScope .chip{flex:1;border:none;border-radius:10px;background:none;padding:12px 6px;font-size:16px;font-weight:800;color:var(--muted)}
   #busScope .chip.on{background:var(--teal);color:#041011}
+  #ciParks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  #ciParks .pk{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:700;color:var(--muted)}
+  #ciParks .pk b{color:var(--text)}
   .umrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font-weight:700}
   .umx{flex:none;width:40px;height:40px;border-radius:10px;border:2px solid var(--line);background:var(--panel);color:var(--text);font-size:22px;font-weight:800;line-height:1}
   #roundChips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
@@ -344,6 +347,7 @@
       <div class="row" style="align-items:center">
         <div><div class="tally" id="ciTally">0/0</div><div class="muted small" id="ciSub"></div></div>
       </div>
+      <div id="ciParks"></div>
       <div class="small" id="autoLine" style="margin-top:8px"></div>
     </div>
     <div id="ciUnmatched"></div>
@@ -1162,6 +1166,13 @@ function chaperone(){
     T.checkins.forEach(function(c,i){ var d = at(c.time); if (!d) return; var x = Math.abs(ts - d.getTime()); if (x < bd){ bd = x; best = i; } });
     return best;   // nearest check-in (a tap on the bus before 8:00 counts for check-in 1)
   }
+  function parkShort(w){
+    w = String(w||"");
+    if (/bus/i.test(w)) return "Bus";
+    if (/islands/i.test(w)) return "Islands";
+    if (/universal/i.test(w)) return "Universal";
+    return w;
+  }
   function clock(ts){ var d=new Date(ts), h=d.getHours()%12||12; return h+":"+pad(d.getMinutes())+(d.getHours()<12?" AM":" PM"); }
   function applyNote(p){
     S.seen = S.seen || [];
@@ -1172,7 +1183,13 @@ function chaperone(){
     var names = [String(p.n||"").trim()].filter(Boolean);   // only the student who tapped; buddies must check in themselves
     names.forEach(function(x, i){
       var m = matchName(x, R);
-      if (m){ if (!S.ci[key][m]) S.ci[key][m] = clock(p.t) + " \u00b7 app"; }
+      if (m){
+        if (!S.ci[key][m]){
+          var w = parkShort(p.w);
+          S.ci[key][m] = clock(p.t) + (w ? " \u00b7 " + w : " \u00b7 app");
+          if (w){ S.cw = S.cw || {}; S.cw[key] = S.cw[key] || {}; S.cw[key][m] = w; }
+        }
+      }
       else if (i === 0){ S.um = S.um || []; S.um.push({r:r, n:x, t:clock(p.t)}); if (S.um.length > 60) S.um = S.um.slice(-60); }
     });
     return true;
@@ -1229,6 +1246,9 @@ function chaperone(){
     $("ciTally").textContent = done + "/" + R.length;
     $("ciSub").textContent = c.label + (c.inPerson ? " (in person" + (c.place? ": "+c.place : "") + ")" : " (text)");
     $("ciList").innerHTML = nameRows(m, now, dl);
+    var cw = (S.cw||{})["r"+round] || {}, pc = {}, po = [];
+    R.forEach(function(x){ var w = m[x.n] && cw[x.n]; if (w){ if (!pc[w]){ pc[w] = 0; po.push(w); } pc[w]++; } });
+    $("ciParks").innerHTML = po.length ? po.map(function(w){ return '<span class="pk">' + esc(w) + ' <b>' + pc[w] + '</b></span>'; }).join("") : "";
     var um = (S.um||[]).map(function(x, i){ return {x:x, i:i}; }).filter(function(o){ return o.x.r === round; });
     $("ciUnmatched").innerHTML = um.length ? '<div class="card small" style="border-color:var(--warn)"><b style="color:var(--warn)">From the app, not matched to your list.</b> Tap the right name below, or \u00d7 to clear.' +
       um.map(function(o){ return '<div class="umrow"><span>"' + esc(o.x.n) + '" (' + esc(o.x.t) + ')</span><button class="umx" data-um="' + o.i + '" aria-label="Clear">\u00d7</button></div>'; }).join("") + '</div>' : "";

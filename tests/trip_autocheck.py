@@ -81,7 +81,8 @@ with sync_playwright() as pw:
     p.click("#roundChips .chip[data-r='1']"); p.wait_for_timeout(100)
     ci=p.inner_text("#ciList")
     check(p.inner_text("#ciTally")=="1/5", "12:00 round auto-checked 1/5 (tapper only): "+p.inner_text("#ciTally"))
-    check("Ava Jones" in ci and "app" in ci, "Ava checked by the app")
+    check("Ava Jones" in ci and "11:58 AM · Universal" in ci, "Ava checked by the app, park shown: "+ci.replace(chr(10)," "))
+    check("Universal 1" in p.inner_text("#ciParks").replace(chr(10)," "), "park count shown: "+p.inner_text("#ciParks"))
     rows={r.split("\n")[0].strip() if not r.startswith("✓") else r: r for r in p.locator("#ciList .name-row").all_inner_texts()}
     ok=[r for r in p.locator("#ciList .name-row.ok").all_inner_texts()]
     check(not any("Marcus Lee" in r for r in ok) and not any("Jordan" in r for r in ok), "buddy Marcus NOT checked, other-group Jordan not: "+str(ok))
