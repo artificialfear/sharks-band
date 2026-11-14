@@ -160,6 +160,7 @@
     <div id="parkChips"></div>
     <a class="btn primary" id="checkBtn" href="#">&#9989; Send my check-in</a>
     <p class="muted small hint-band" style="margin:8px 0 0">This copies your message and opens your group's BAND chat. <b>Paste it in the chat and send.</b></p>
+    <p class="small hide" id="autoNote" style="margin:6px 0 0;color:var(--good);font-weight:700"></p>
     <p class="muted small hint-sms hide" style="margin:8px 0 0">This opens your Messages app with the text ready. <b>You still have to press Send.</b></p>
   </div>
 
@@ -339,9 +340,11 @@
       <div class="row" style="align-items:center">
         <div><div class="tally" id="ciTally">0/0</div><div class="muted small" id="ciSub"></div></div>
       </div>
+      <div class="small" id="autoLine" style="margin-top:8px"></div>
     </div>
+    <div id="ciUnmatched"></div>
     <div id="ciList"></div>
-    <p class="muted small">Tap a name when their check-in text arrives (or when you see them). Names turn red 15 minutes after the check-in time if you haven't marked them yet.</p>
+    <p class="muted small">Names check themselves off when a student taps <b>Send my check-in</b> in the trip app (marked "app"). You can still tap a name by hand when their BAND message arrives or you see them, and tap again to undo. Names turn red 15 minutes after the check-in time if they're not marked yet.</p>
   </div>
 
   <!-- bus -->
@@ -498,6 +501,41 @@ function scheduleHTML(){
   }).join("");
 }
 
+// =================== AUTO CHECK-OFF RELAY ===================
+// When a student taps "Send my check-in", a small note goes through the free ntfy.sh relay to their chaperone's page.
+// The note is AES-GCM encrypted with a key made from the group's BAND chat link (which both sides already have),
+// and the relay topic is made from it too, so the relay only ever sees scrambled text. BAND messages still work as before.
+var RELAY = "https://ntfy.sh/";
+function bandNorm(s){ return String(s||"").trim().replace(/^https?:\/\//i,"").replace(/^www\./i,"").replace(/[?#].*$/,"").replace(/\/+$/,"").toLowerCase(); }
+var relayCache = {};
+function relayFor(link){
+  var n = bandNorm(link);
+  if (!n || !window.crypto || !crypto.subtle || !window.TextEncoder) return Promise.reject(new Error("unavailable"));
+  if (relayCache[n]) return relayCache[n];
+  var te = new TextEncoder();
+  return relayCache[n] = Promise.all([
+    crypto.subtle.digest("SHA-256", te.encode("ihs-trip-topic|" + n)),
+    crypto.subtle.digest("SHA-256", te.encode("ihs-trip-key|" + n))
+  ]).then(function(r){
+    var hex = Array.prototype.map.call(new Uint8Array(r[0]), function(b){ return ("0"+b.toString(16)).slice(-2); }).join("").slice(0,32);
+    return crypto.subtle.importKey("raw", r[1], "AES-GCM", false, ["encrypt","decrypt"]).then(function(key){ return {topic:"ihsband-"+hex, key:key}; });
+  });
+}
+function u8b64u(u8){ var t=""; for (var i=0;i<u8.length;i++) t+=String.fromCharCode(u8[i]); return btoa(t).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function b64uU8(t){ t=t.replace(/-/g,"+").replace(/_/g,"/"); while(t.length%4) t+="="; var x=atob(t), u=new Uint8Array(x.length); for (var i=0;i<x.length;i++) u[i]=x.charCodeAt(i); return u; }
+function relaySeal(r, obj){
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  return crypto.subtle.encrypt({name:"AES-GCM", iv:iv}, r.key, new TextEncoder().encode(JSON.stringify(obj))).then(function(ct){
+    var all = new Uint8Array(12 + ct.byteLength); all.set(iv, 0); all.set(new Uint8Array(ct), 12); return "v1." + u8b64u(all);
+  });
+}
+function relayOpen(r, text){
+  if (!/^v1\./.test(text||"")) return Promise.reject(new Error("not ours"));
+  var all = b64uU8(text.slice(3));
+  return crypto.subtle.decrypt({name:"AES-GCM", iv:all.slice(0,12)}, r.key, all.slice(12)).then(function(pt){ return JSON.parse(new TextDecoder().decode(pt)); });
+}
+window.__relay = {relayFor:relayFor, relaySeal:relaySeal, relayOpen:relayOpen, bandNorm:bandNorm};
+
 // =================== STUDENT ===================
 function student(info){
   show("student");
@@ -637,6 +675,36 @@ function student(info){
     $("installBtn").onclick = function(){ if (!deferred) return; deferred.prompt(); deferred = null; this.classList.add("hide"); };
     $("installHide").onclick = function(){ put("trip.student.installHidden", true); $("installCard").classList.add("hide"); };
   })();
+  // auto check-off: queue a note for the chaperone's tracker; retried until the relay takes it (signal in the parks can be bad)
+  var OUT = "trip.student.outbox";
+  var flushing = false;
+  function flushOutbox(){
+    if (flushing || !info.k) return;
+    var q = get(OUT, []).filter(function(x){ return Date.now() - x.t < 3*3600*1000; });
+    put(OUT, q); if (!q.length) return;
+    flushing = true;
+    relayFor(info.k).then(function(r){
+      return q.reduce(function(chain, item){
+        return chain.then(function(){
+          return relaySeal(r, item).then(function(body){
+            return fetch(RELAY + r.topic, {method:"POST", body:body, keepalive:true});
+          }).then(function(res){
+            if (!res.ok) throw new Error("relay " + res.status);
+            put(OUT, get(OUT, []).filter(function(x){ return x.id !== item.id; }));
+            var d = new Date(item.t), h = d.getHours()%12||12;
+            put("trip.student.autoNote", "\u2714 Your " + h + ":" + pad(d.getMinutes()) + (d.getHours()<12?" AM":" PM") + " check-in also reached " + info.c + "'s tracker.");
+            showAutoNote();
+          });
+        });
+      }, Promise.resolve());
+    }).catch(function(){}).then(function(){ flushing = false; });
+  }
+  window.__flush = flushOutbox;
+  function showAutoNote(){ var t = get("trip.student.autoNote", ""); $("autoNote").textContent = t; $("autoNote").classList.toggle("hide", !t); }
+  showAutoNote();
+  flushOutbox();
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) flushOutbox(); });
+  setInterval(flushOutbox, 30000);
   // check-in time inside the text should be the time of tapping
   ["checkBtn","lostBtn","sickBtn","otherBtn"].forEach(function(id){
     $(id).addEventListener("click", function(e){
@@ -644,6 +712,10 @@ function student(info){
       refreshLinks();
       if (useBand){
         var t = msg(BTN[id]); copyText(t);
+        if (id === "checkBtn"){
+          var q = get(OUT, []); q.push({id: Date.now().toString(36) + Math.random().toString(36).slice(2,8), n:name, b:buddies, t:Date.now(), w:park});
+          put(OUT, q); flushOutbox();
+        }
         $("lastMsg").textContent = t; $("lastMsgBox").classList.remove("hide"); put("trip.student.lastMsg", t);
         toast("Copied! Paste it in BAND");
       }
@@ -1050,6 +1122,70 @@ function chaperone(){
     $("lostInfo").innerHTML = info; $("lostInfo").classList.toggle("hide", !info);
   }
 
+  // ---- auto check-off: read the students' app taps from the relay ----
+  var autoState = {ok:null, at:0};
+  function normName(x){ return String(x||"").toLowerCase().replace(/['\u2019.-]/g,"").replace(/[^a-z]+/g," ").trim(); }
+  function matchName(typed, list){
+    var t = normName(typed); if (!t) return null;
+    var tt = t.split(" "), c;
+    c = list.filter(function(x){ return normName(x.n) === t; }); if (c.length === 1) return c[0].n;
+    c = list.filter(function(x){ var p = normName(x.n).split(" "); if (p[0] !== tt[0]) return false;
+      return tt.length === 1 || (p.length > 1 && p[p.length-1].indexOf(tt[tt.length-1]) === 0); });
+    if (c.length === 1) return c[0].n;
+    if (tt.length > 1){ c = list.filter(function(x){ var p = normName(x.n).split(" "); return p.length > 1 && p[p.length-1] === tt[tt.length-1]; }); if (c.length === 1) return c[0].n; }
+    return null;
+  }
+  window.__matchName = matchName;
+  function roundFor(ts){
+    var best = -1, bd = Infinity;
+    T.checkins.forEach(function(c,i){ var d = at(c.time); if (!d) return; var x = Math.abs(ts - d.getTime()); if (x < bd){ bd = x; best = i; } });
+    return best;   // nearest check-in (a tap on the bus before 8:00 counts for check-in 1)
+  }
+  function clock(ts){ var d=new Date(ts), h=d.getHours()%12||12; return h+":"+pad(d.getMinutes())+(d.getHours()<12?" AM":" PM"); }
+  function applyNote(p){
+    S.seen = S.seen || [];
+    if (!p || !p.id || S.seen.indexOf(p.id) > -1) return false;
+    S.seen.push(p.id); if (S.seen.length > 600) S.seen = S.seen.slice(-400);
+    var r = roundFor(p.t); if (r < 0) return true;
+    var R = roster(), key = "r"+r; S.ci[key] = S.ci[key] || {};
+    var names = [p.n].concat(String(p.b||"").split(/,|&|\+|\/|;|\band\b/i)).map(function(x){ return x.trim(); }).filter(Boolean);
+    names.forEach(function(x, i){
+      var m = matchName(x, R);
+      if (m){ if (!S.ci[key][m]) S.ci[key][m] = clock(p.t) + " \u00b7 app"; }
+      else if (i === 0){ S.um = S.um || []; S.um.push({r:r, n:x, t:clock(p.t)}); if (S.um.length > 60) S.um = S.um.slice(-60); }
+    });
+    return true;
+  }
+  function renderAuto(){
+    var el = $("autoLine"); if (!el) return;
+    if (!S.band){ el.innerHTML = '<span class="muted">Auto check-off needs your BAND chat link on the Setup tab.</span>'; return; }
+    if (autoState.ok === false){ el.innerHTML = '<span style="color:var(--warn)">\u26a1 Auto check-off can\'t connect right now. Tap names by hand; it will catch up when signal is back.</span>'; return; }
+    if (autoState.ok){ el.innerHTML = '<span style="color:var(--good)">\u26a1 Auto check-off is on</span> <span class="muted">\u00b7 updated ' + clock(autoState.at) + '</span>'; return; }
+    el.innerHTML = '<span class="muted">\u26a1 Auto check-off: connecting\u2026</span>';
+  }
+  var polling = false;
+  function pollRelay(){
+    if (!S.band || polling){ renderAuto(); return; }
+    polling = true;
+    relayFor(S.band).then(function(r){
+      S.rs = S.rs || {};
+      var since = S.rs[r.topic] ? Math.max(0, S.rs[r.topic] - 1) : "12h";
+      return fetch(RELAY + r.topic + "/json?poll=1&since=" + since, {cache:"no-store"}).then(function(res){
+        if (!res.ok) throw new Error("relay " + res.status); return res.text();
+      }).then(function(txt){
+        var msgs = txt.split("\n").map(function(l){ try { return JSON.parse(l); } catch(e){ return null; } })
+          .filter(function(m){ return m && m.event === "message"; });
+        return Promise.all(msgs.map(function(m){ return relayOpen(r, m.message).catch(function(){ return null; }).then(function(p){ return {m:m, p:p}; }); }));
+      }).then(function(items){
+        var changed = false;
+        items.forEach(function(x){ if (applyNote(x.p)) changed = true; if (x.m.time && x.m.time > (S.rs[r.topic]||0)) S.rs[r.topic] = x.m.time; });
+        autoState = {ok:true, at:Date.now()};
+        save(); if (changed) render(); else renderAuto();
+      });
+    }).catch(function(){ autoState = {ok:false, at:autoState.at}; renderAuto(); }).then(function(){ polling = false; });
+  }
+  window.__poll = pollRelay;
+
   function nameRows(map, now, deadline, list){
     return (list || roster()).map(function(s){
       var t = map && map[s.n], late = !t && deadline && now > deadline;
@@ -1072,6 +1208,10 @@ function chaperone(){
     $("ciTally").textContent = done + "/" + R.length;
     $("ciSub").textContent = c.label + (c.inPerson ? " (in person" + (c.place? ": "+c.place : "") + ")" : " (text)");
     $("ciList").innerHTML = nameRows(m, now, dl);
+    var um = (S.um||[]).filter(function(x){ return x.r === round; });
+    $("ciUnmatched").innerHTML = um.length ? '<div class="card small" style="border-color:var(--warn)"><b style="color:var(--warn)">From the app, not matched to your list:</b> ' +
+      esc(um.map(function(x){ return '"' + x.n + '" (' + x.t + ')'; }).join(", ")) + '. Tap the right name below.</div>' : "";
+    if (autoState.ok === null && S.band && !polling) pollRelay(); else renderAuto();
     // bus
     var ALL = allStudents(), mine = myGroup(), multi = ALL.length > mine.length;
     var scope = multi ? busScope : "mine";
@@ -1142,6 +1282,8 @@ function chaperone(){
     })();
   }
   render(); setInterval(render, 60000);
+  pollRelay(); setInterval(pollRelay, 30000);
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) pollRelay(); });
   if (openBusTab){ var bt = document.querySelector("#tabs .tab[data-t=bus]"); if (bt) bt.click(); }
 }
 

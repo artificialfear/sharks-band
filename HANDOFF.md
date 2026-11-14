@@ -59,3 +59,9 @@
 - Whole-bus count (2026-11-13): setup payloads carry `a: [[group, [names]]]` for the other groups, with names only and no contacts or medical info. On import this is stored as `trip.all.v1`. The Bus tab has "Whole bus (26)" (the default) and "My group" chips. The whole-bus view is grouped by chaperone with the user's own group first, and each group header has its own count. With more than 8 missing it shows per-group counts; with 8 or fewer it lists the names with group tags. The report text works the same way. Students are keyed by name, so two students with the exact same name would toggle together; add a middle initial if that happens.
 - Open item: confirm on a real iPhone + Android that tapping the chat link opens the BAND app (universal link) and that paste works.
 - Test: `python3 tests/trip_smoke.py --shots /tmp/trip`
+
+## Trip auto check-off (added trip morning, Nov 14 2026)
+- Relay: public ntfy.sh. Student tap queues `{id,n,b,t,w}` in localStorage `trip.student.outbox`, AES-GCM encrypts it (key = SHA-256("ihs-trip-key|"+normalized BAND chat link)), POSTs to `ntfy.sh/ihsband-<32 hex of SHA-256("ihs-trip-topic|"+link)>`. Retries on load/visibility/30 s; drops after 3 h.
+- Chaperone polls `/<topic>/json?poll=1&since=` every 30 s (since = last message time, stored per topic in `S.rs`), dedupes by note id (`S.seen`), assigns to the nearest check-in, fuzzy-matches name + buddies to the roster (`matchName`), writes "h:mm · app". Unmatched main names go in `S.um`.
+- No secret in the repo: only phones holding the group's BAND chat link can derive topic/key. Relay never sees plaintext.
+- Not testable from the build sandbox (ntfy.sh blocked); tests/trip_autocheck.py fakes the relay with Playwright routes.
