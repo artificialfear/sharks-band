@@ -94,6 +94,9 @@
   .snav button.sos.on{color:#ffd6d6;background:#3a1416}
   #helpJump{margin-bottom:12px}
   .seclbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:10px 2px 6px}
+  #parkChips{display:flex;gap:4px;background:#070a0b;border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:12px}
+  #parkChips .chip{flex:1;border:none;border-radius:10px;background:none;padding:10px 4px;font-size:14px;font-weight:800;color:var(--muted);line-height:1.2;min-height:52px}
+  #parkChips .chip.on{background:var(--teal);color:#041011}
   #busScope{display:flex;gap:4px;background:#070a0b;border:1px solid var(--line);border-radius:14px;padding:4px}
   #busScope .chip{flex:1;border:none;border-radius:10px;background:none;padding:12px 6px;font-size:16px;font-weight:800;color:var(--muted)}
   #busScope .chip.on{background:var(--teal);color:#041011}
@@ -143,8 +146,8 @@
 
   <div class="card">
     <h2>Check in</h2>
-    <div class="muted small">Where are you right now?</div>
-    <div class="chips" id="parkChips"></div>
+    <div class="seclbl" style="margin-top:0">Where are you right now?</div>
+    <div id="parkChips"></div>
     <a class="btn primary" id="checkBtn" href="#">&#9989; Send my check-in</a>
     <p class="muted small hint-band" style="margin:8px 0 0">This copies your message and opens your group's BAND chat. <b>Paste it in the chat and send.</b></p>
     <p class="muted small hint-sms hide" style="margin:8px 0 0">This opens your Messages app with the text ready. <b>You still have to press Send.</b></p>
@@ -401,7 +404,7 @@
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="trip-config.js?v=9"></script>
+<script src="trip-config.js?v=10"></script>
 <script src="qrcode.js"></script>
 <script>
 (function(){
@@ -490,8 +493,16 @@ function student(info){
   var name = get("trip.student.name","");
   var buddies = get("trip.student.buddies","");
   var loc = get("trip.student.loc", null);
-  var park = get("trip.student.park", T.parks[0]);
-  if (T.parks.indexOf(park) < 0) park = T.parks[0];   // e.g. a phone that had picked CityWalk before it was removed
+  // Where am I? A pick from the last 2 hours wins; otherwise guess from the time (bus before 10:00 and after 6:30).
+  var BUSPLACE = "On the bus";
+  var PLACES = [BUSPLACE].concat(T.parks);
+  var parkPick = get("trip.student.parkPick", null);
+  function defaultPlace(){
+    var now = new Date(), a = at(T.parkOpen || "10:00"), b = at(T.parkClose || "18:30");
+    return (a && b && (now < a || now > b)) ? BUSPLACE : T.parks[0];
+  }
+  var park = (parkPick && PLACES.indexOf(parkPick.p) > -1 && Date.now() - parkPick.t < 2*3600*1000) ? parkPick.p : defaultPlace();
+  function where(){ return park === BUSPLACE ? "on the bus" : "in " + park; }
   $("sChap").textContent = info.c;
   var useBand = !!info.k;   // BAND chat link (new) vs. phone number (older links)
   $("sGroup").textContent = info.g || "";
@@ -518,10 +529,10 @@ function student(info){
   };
   $("changeName").onclick = function(){ askName(); window.scrollTo(0,0); };
 
-  $("parkChips").innerHTML = T.parks.map(function(p){ return '<button class="chip'+(p===park?" on":"")+'" data-p="'+esc(p)+'">'+esc(p)+'</button>'; }).join("");
+  $("parkChips").innerHTML = PLACES.map(function(p){ return '<button class="chip'+(p===park?" on":"")+'" data-p="'+esc(p)+'">'+esc(p)+'</button>'; }).join("");
   $("parkChips").onclick = function(e){
     var b = e.target.closest(".chip"); if(!b) return;
-    park = b.dataset.p; put("trip.student.park", park);
+    park = b.dataset.p; put("trip.student.parkPick", {p:park, t:Date.now()});
     [].forEach.call(this.children,function(c){c.classList.toggle("on",c===b);}); refreshLinks();
   };
 
@@ -535,9 +546,10 @@ function student(info){
   }
   function msg(kind){
     var L = locText();
-    if (kind === "check") return "\u2705 Check-in: " + withBuddies() + " at " + nowStr() + ". In " + park + ". All good." + L;
-    if (kind === "lost")  return "\u26a0\ufe0f " + who() + ": I'm separated from my group. I'm in " + park + "." + L + " Near: ";
-    if (kind === "sick")  return "\ud83e\ude79 " + who() + ": I'm sick or hurt. I'm in " + park + "." + L + " Near: ";
+    var W = where(), Wc = W.charAt(0).toUpperCase() + W.slice(1);
+    if (kind === "check") return "\u2705 Check-in: " + withBuddies() + " at " + nowStr() + ". " + Wc + ". All good." + L;
+    if (kind === "lost")  return "\u26a0\ufe0f " + who() + ": I'm separated from my group. I'm " + W + "." + L + " Near: ";
+    if (kind === "sick")  return "\ud83e\ude79 " + who() + ": I'm sick or hurt. I'm " + W + "." + L + " Near: ";
     return who() + ":" + L + " ";
   }
   window.__msg = msg;

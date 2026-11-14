@@ -30,7 +30,8 @@ window.TRIP = {
     { time: "23:30", what: "Arrive back at Islands High School" }
   ],
 
-  parks: ["Universal Studios Florida", "Islands of Adventure"],
+  parks: ["Universal Studios", "Islands of Adventure"],   // students also get "On the bus"
+  parkOpen: "10:00", parkClose: "18:30",                 // outside these times the check-in defaults to "On the bus"
 
   bus: { pickup: "Kelly Tours motor coach. TBD: where it parks at Universal",
          note: "Take a photo of where the bus is parked. Trip #31740." },
