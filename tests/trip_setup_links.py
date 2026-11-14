@@ -79,7 +79,8 @@ with sync_playwright() as pw:
     p.evaluate("for (let i=0;i<20;i++) document.querySelectorAll('#busList .name-row')[i].click()")
     p.wait_for_timeout(100)
     check(p.inner_text("#busTally")=="20/26" and p.locator("#busShareCopy").count()==1, "leader: 20/26 + share checkmarks button")
-    surl=p.evaluate("window.__busShareUrl()"); print("  checkmarks link", len(surl), "chars")
+    surl=p.evaluate("window.__busShareUrl()"); print("  checkmarks link", len(surl), "chars:", surl.split("#")[1])
+    check(len(surl.replace(surl.split("#")[0], "https://artificialfear.github.io/sharks-band/trip/index.html")) < 110, "checkmarks link is short")
     e.goto(surl.replace(surl.split("#")[0], base)); e.wait_for_timeout(500)
     check(e.evaluate("location.hash")=="#chap" and e.is_visible("#busList"), "Emily's phone opens straight to Bus count")
     check(e.inner_text("#busTally")=="20/26" and "Rest stop (going)" in e.inner_text("#busChips .chip.on"), "Emily sees the leader's 20 checkmarks on the same count")
@@ -87,6 +88,13 @@ with sync_playwright() as pw:
     check(e.inner_text("#busTally")=="21/26", "Emily can keep counting from there")
     sd=e.evaluate("JSON.parse(localStorage.getItem('trip.chap.v1')).name")
     check(sd=="Mrs. Graham", "her setup is untouched")
+    # a phone with a different roster gets a clear message instead of wrong checkmarks
+    c4=b.new_context(viewport={"width":390,"height":844},is_mobile=True); q=c4.new_page()
+    q.goto(base+"#chap"); q.wait_for_timeout(200)
+    q.evaluate("document.getElementById('masterDetails').open = true"); q.fill("#masterIn","Someone Else | | Group Z"); q.click("#masterLoad")
+    q.goto(surl.replace(surl.split("#")[0], base)); q.wait_for_timeout(500)
+    check("roster doesn't match" in q.inner_text("#toast") and q.evaluate("location.hash")=="#chap", "mismatched roster: clear message, no wrong checkmarks")
+    c4.close()
     # other groups' parent/medical info is NOT on her phone
     m=e.evaluate("JSON.parse(localStorage.getItem('trip.master.v1'))")
     check(len(m)==10 and all(x["g"]=="Mrs. Graham's Group" for x in m), "only her own group's contact/medical info is stored")

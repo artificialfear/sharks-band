@@ -911,8 +911,9 @@ function chaperone(){
   var busKey = "depart";
   var BUS = [{k:"depart",l:"Leaving Islands"},{k:"stop1",l:"Rest stop (going)"},{k:"arrive",l:"Off at Universal"},
              {k:"return",l:"Leaving Universal"},{k:"stop2",l:"Rest stop (home)"},{k:"home",l:"Off at Islands"}];
-  // a shared bus count from another chaperone: #chap&bus=... -> merge their checkmarks into this phone
+  // a shared bus count from another chaperone -> merge their checkmarks into this phone
   var openBusTab = false;
+  var pendingShort = (location.hash.match(/[#&]b=([^&]+)/) || [])[1] || null;   // short form needs the roster, so it's applied below
   (function(){
     var m = location.hash.match(/[#&]bus=([^&]+)/); if (!m) return;
     try {
@@ -941,8 +942,16 @@ function chaperone(){
     roster().forEach(function(x){ if (!have[x.n]) best.push({n:x.n, g:S.group || "My group"}); });   // hand-typed names
     return best;
   }
+  function canonNames(){   // same sorted list on every chaperone's phone
+    var seen = {}, out = [];
+    allStudents().forEach(function(x){ if (!seen[x.n]){ seen[x.n] = 1; out.push(x.n); } });
+    return out.sort();
+  }
+  function rosterHash(list){ var h = 5381, t = list.join("|"); for (var i=0;i<t.length;i++) h = ((h*33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36).slice(-4); }
   function busShareUrl(){
-    return location.href.split("#")[0] + "#chap&bus=" + enc({k:busKey, by:S.name||"", c:S.bus[busKey]||{}});
+    var names = canonNames(), map = S.bus[busKey] || {}, bytes = new Uint8Array(Math.ceil(names.length/8));
+    names.forEach(function(n,i){ if (map[n]) bytes[i>>3] |= (1 << (i&7)); });
+    return location.href.split("#")[0] + "#chap&b=" + busKey + "~" + rosterHash(names) + "~" + b64u(bytes) + "~" + encodeURIComponent((S.name||"").replace(/[~&#]/g,""));
   }
   window.__busShareUrl = function(){ return busShareUrl(); };
   function myGroup(){ return roster().map(function(x){ return {n:x.n, g:S.group || "My group"}; }); }
@@ -1034,7 +1043,7 @@ function chaperone(){
     var rpt = "🚌 " + (scope === "all" ? "Whole bus" : (S.group||"My group")) + " (" + (S.name||"chaperone") + ") — " + bl + ": " + on + "/" + BL.length +
       (!missing.length ? ". All here ✔" : fewLeft ? ". Missing: " + missing.join(", ") : ". Still missing " + missing.length + (scope === "all" ? " (" + byGroupCounts() + ")" : ""));
     var BB = parseLines(S.backups).filter(function(b){return b.p;});
-    var shareUrl = busShareUrl(), shareMsg = "\ud83d\ude8c " + (S.name||"Chaperone") + "'s bus count (" + bl + ", " + on + "/" + BL.length + "). Tap to load the checkmarks on your phone: " + shareUrl;
+    var shareUrl = busShareUrl(), shareMsg = "\ud83d\ude8c " + (S.name||"Chaperone") + ": " + bl + " " + on + "/" + BL.length + ". Tap to load: " + shareUrl;
     $("busReport").innerHTML = '<h2>Send this count</h2><div class="small muted" style="margin-bottom:8px">'+esc(rpt)+'</div>' +
       (BB.length ? BB.map(function(b){ return '<a class="btn" href="'+smsHref(b.p, rpt)+'">Text to '+esc(b.n)+'</a>'; }).join("") : '<p class="muted small" style="margin:0">Add the other chaperones on the Setup tab to send this.</p>') +
       (on ? '<h2 style="margin-top:14px">Share my checkmarks</h2><p class="small muted" style="margin:0 0 8px">Sends a link. When they tap it, their Bus count shows your checkmarks too, with no setup needed.</p>' +
@@ -1054,6 +1063,25 @@ function chaperone(){
     $("tourCard").classList.toggle("hide", !tc);
     if (tc) $("tourCard").innerHTML = '<h2>'+esc(tc.name)+' \u00b7 Trip #'+esc(tc.trip)+'</h2>' +
       tc.phones.map(function(ph){ return '<a class="btn" href="'+telHref(ph)+'">Call '+esc(tc.name)+' '+esc(ph)+'</a>'; }).join("");
+  }
+  if (pendingShort){
+    (function(){
+      try {
+        var parts = pendingShort.split("~"), k = parts[0], lab = BUS.filter(function(x){ return x.k === k; })[0];
+        var names = canonNames();
+        if (!lab) throw "bad";
+        if (rosterHash(names) !== parts[1]) throw "roster";
+        var bytes = unb64u(parts[2]), by = decodeURIComponent(parts[3]||""), got = 0;
+        S.bus[k] = S.bus[k] || {};
+        names.forEach(function(n,i){ if (bytes[i>>3] & (1 << (i&7))){ got++; if (!S.bus[k][n]) S.bus[k][n] = nowStr(); } });
+        save(); busKey = k; openBusTab = true;
+        [].forEach.call($("busChips").children, function(c){ c.classList.toggle("on", c.dataset.k === k); });
+        setTimeout(function(){ toast("Loaded " + (by||"a chaperone") + "'s count: " + got + " checked (" + lab.l + ")"); }, 300);
+      } catch(e){
+        setTimeout(function(){ toast(e === "roster" ? "Your roster doesn't match theirs. Ask the trip leader for a new setup QR." : "That bus count link didn't load. Ask them to send it again."); }, 300);
+      }
+      history.replaceState(null, "", location.pathname + location.search + "#chap");
+    })();
   }
   render(); setInterval(render, 60000);
   if (openBusTab){ var bt = document.querySelector("#tabs .tab[data-t=bus]"); if (bt) bt.click(); }
