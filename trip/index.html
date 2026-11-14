@@ -951,7 +951,9 @@ function chaperone(){
   function busShareUrl(){
     var names = canonNames(), map = S.bus[busKey] || {}, bytes = new Uint8Array(Math.ceil(names.length/8));
     names.forEach(function(n,i){ if (map[n]) bytes[i>>3] |= (1 << (i&7)); });
-    return location.href.split("#")[0] + "#chap&b=" + busKey + "~" + rosterHash(names) + "~" + b64u(bytes) + "~" + encodeURIComponent((S.name||"").replace(/[~&#]/g,""));
+    // only letters, digits, - _ . so every phone's link detection keeps the whole link
+    var by = (S.name||"").replace(/[^A-Za-z0-9 ]/g,"").trim().replace(/\s+/g,"_");
+    return location.href.split("#")[0] + "#chap&b=" + busKey + "." + rosterHash(names) + "." + b64u(bytes) + (by ? "." + by : "");
   }
   window.__busShareUrl = function(){ return busShareUrl(); };
   function myGroup(){ return roster().map(function(x){ return {n:x.n, g:S.group || "My group"}; }); }
@@ -1043,7 +1045,7 @@ function chaperone(){
     var rpt = "🚌 " + (scope === "all" ? "Whole bus" : (S.group||"My group")) + " (" + (S.name||"chaperone") + ") — " + bl + ": " + on + "/" + BL.length +
       (!missing.length ? ". All here ✔" : fewLeft ? ". Missing: " + missing.join(", ") : ". Still missing " + missing.length + (scope === "all" ? " (" + byGroupCounts() + ")" : ""));
     var BB = parseLines(S.backups).filter(function(b){return b.p;});
-    var shareUrl = busShareUrl(), shareMsg = "\ud83d\ude8c " + (S.name||"Chaperone") + ": " + bl + " " + on + "/" + BL.length + ". Tap to load: " + shareUrl;
+    var shareUrl = busShareUrl(), shareMsg = "\ud83d\ude8c " + (S.name||"Chaperone") + ": " + bl + " " + on + "/" + BL.length + ". Tap to load:\n" + shareUrl;
     $("busReport").innerHTML = '<h2>Send this count</h2><div class="small muted" style="margin-bottom:8px">'+esc(rpt)+'</div>' +
       (BB.length ? BB.map(function(b){ return '<a class="btn" href="'+smsHref(b.p, rpt)+'">Text to '+esc(b.n)+'</a>'; }).join("") : '<p class="muted small" style="margin:0">Add the other chaperones on the Setup tab to send this.</p>') +
       (on ? '<h2 style="margin-top:14px">Share my checkmarks</h2><p class="small muted" style="margin:0 0 8px">Sends a link. When they tap it, their Bus count shows your checkmarks too, with no setup needed.</p>' +
@@ -1067,11 +1069,11 @@ function chaperone(){
   if (pendingShort){
     (function(){
       try {
-        var parts = pendingShort.split("~"), k = parts[0], lab = BUS.filter(function(x){ return x.k === k; })[0];
+        var parts = pendingShort.split(/[~.]/), k = parts[0], lab = BUS.filter(function(x){ return x.k === k; })[0];
         var names = canonNames();
         if (!lab) throw "bad";
         if (rosterHash(names) !== parts[1]) throw "roster";
-        var bytes = unb64u(parts[2]), by = decodeURIComponent(parts[3]||""), got = 0;
+        var bytes = unb64u(parts[2]), by = decodeURIComponent(parts[3]||"").replace(/_/g," "), got = 0;
         S.bus[k] = S.bus[k] || {};
         names.forEach(function(n,i){ if (bytes[i>>3] & (1 << (i&7))){ got++; if (!S.bus[k][n]) S.bus[k][n] = nowStr(); } });
         save(); busKey = k; openBusTab = true;
