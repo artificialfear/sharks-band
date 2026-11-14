@@ -124,7 +124,7 @@ with sync_playwright() as pw:
     p.click("[data-t=bus]"); p.wait_for_timeout(100)
     rpt=p.inner_text("#busReport")
     check("Group A (Mrs. Graham)" in rpt and "Missing:" in rpt, "bus report text: "+rpt.split(chr(10))[1] if chr(10) in rpt else rpt)
-    check(p.locator("#busReport a[href^='sms:9125550199']").count()==1, "bus report text button")
+    check(p.locator("#busReport a[href^='sms:9125550199']").count()>=1, "bus report text button")
     shot(p,"c7-bus-report")
     # student
     ctx.grant_permissions(["geolocation","clipboard-read","clipboard-write"]); ctx.set_geolocation({"latitude":28.4719,"longitude":-81.4702,"accuracy":12})

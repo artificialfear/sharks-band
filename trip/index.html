@@ -911,6 +911,20 @@ function chaperone(){
   var busKey = "depart";
   var BUS = [{k:"depart",l:"Leaving Islands"},{k:"stop1",l:"Rest stop (going)"},{k:"arrive",l:"Off at Universal"},
              {k:"return",l:"Leaving Universal"},{k:"stop2",l:"Rest stop (home)"},{k:"home",l:"Off at Islands"}];
+  // a shared bus count from another chaperone: #chap&bus=... -> merge their checkmarks into this phone
+  var openBusTab = false;
+  (function(){
+    var m = location.hash.match(/[#&]bus=([^&]+)/); if (!m) return;
+    try {
+      var d = dec(m[1]), lab = BUS.filter(function(x){ return x.k === d.k; })[0];
+      if (!lab || !d.c) throw 0;
+      S.bus[d.k] = S.bus[d.k] || {}; var added = 0;
+      Object.keys(d.c).forEach(function(n){ if (!S.bus[d.k][n]){ S.bus[d.k][n] = d.c[n]; added++; } });
+      save(); busKey = d.k; openBusTab = true;
+      setTimeout(function(){ toast("Loaded " + (d.by||"a chaperone") + "'s count: " + Object.keys(d.c).length + " checked (" + lab.l + ")"); }, 300);
+    } catch(e){ setTimeout(function(){ toast("That bus count link didn't load. Ask them to send it again."); }, 300); }
+    history.replaceState(null, "", location.pathname + location.search + "#chap");
+  })();
   $("busChips").innerHTML = BUS.map(function(b){return '<button class="chip'+(b.k===busKey?" on":"")+'" data-k="'+b.k+'">'+b.l+'</button>';}).join("");
   $("busChips").onclick = function(e){ var b=e.target.closest(".chip"); if(!b) return; busKey=b.dataset.k; [].forEach.call(this.children,function(c){c.classList.toggle("on",c===b);}); render(); };
   $("busList").onclick = function(e){
@@ -927,6 +941,10 @@ function chaperone(){
     roster().forEach(function(x){ if (!have[x.n]) best.push({n:x.n, g:S.group || "My group"}); });   // hand-typed names
     return best;
   }
+  function busShareUrl(){
+    return location.href.split("#")[0] + "#chap&bus=" + enc({k:busKey, by:S.name||"", c:S.bus[busKey]||{}});
+  }
+  window.__busShareUrl = function(){ return busShareUrl(); };
   function myGroup(){ return roster().map(function(x){ return {n:x.n, g:S.group || "My group"}; }); }
   window.__allStudents = function(){ return allStudents(); };
   $("busReset").onclick = function(){ if (confirmTap(this)) { S.bus[busKey]={}; save(); render(); } };
@@ -991,20 +1009,20 @@ function chaperone(){
     $("ciList").innerHTML = nameRows(m, now, dl);
     // bus
     var ALL = allStudents(), mine = myGroup(), multi = ALL.length > mine.length;
-    if (!multi) busScope = "mine";
-    $("busScope").innerHTML = multi ? '<button class="chip'+(busScope==="all"?" on":"")+'" data-s="all">Whole bus ('+ALL.length+')</button>' +
-      '<button class="chip'+(busScope==="mine"?" on":"")+'" data-s="mine">My group ('+mine.length+')</button>' : "";
-    var BL = busScope === "all" ? ALL : mine;
+    var scope = multi ? busScope : "mine";
+    $("busScope").innerHTML = multi ? '<button class="chip'+(scope==="all"?" on":"")+'" data-s="all">Whole bus ('+ALL.length+')</button>' +
+      '<button class="chip'+(scope==="mine"?" on":"")+'" data-s="mine">My group ('+mine.length+')</button>' : "";
+    var BL = scope === "all" ? ALL : mine;
     var bm = S.bus[busKey]||{}, on = BL.filter(function(s){return bm[s.n];}).length;
     $("busTally").textContent = on + "/" + BL.length;
     var miss = BL.filter(function(s){return !bm[s.n];});
-    function missTxt(x){ return x.n + (busScope === "all" && x.g !== S.group ? " (" + x.g.replace(/'s group$/i,"") + ")" : ""); }
+    function missTxt(x){ return x.n + (scope === "all" && x.g !== S.group ? " (" + x.g.replace(/'s group$/i,"") + ")" : ""); }
     function byGroupCounts(){ var c = {}, o = []; miss.forEach(function(x){ if (!c[x.g]){ c[x.g] = 0; o.push(x.g); } c[x.g]++; });
       return o.map(function(g){ return g.replace(/'s group$/i,"") + " " + c[g]; }).join(", "); }
     var fewLeft = miss.length <= 8;
     $("busBanner").innerHTML = BL.length ? (on===BL.length ? '<div class="banner good">Everyone is here ✔</div>' :
-      '<div class="banner bad">' + (fewLeft ? 'Missing: '+esc(miss.map(missTxt).join(", ")) : esc(miss.length + ' not checked yet' + (busScope === "all" ? ' (' + byGroupCounts() + ')' : ''))) + '</div>') : "";
-    if (busScope === "all"){
+      '<div class="banner bad">' + (fewLeft ? 'Missing: '+esc(miss.map(missTxt).join(", ")) : esc(miss.length + ' not checked yet' + (scope === "all" ? ' (' + byGroupCounts() + ')' : ''))) + '</div>') : "";
+    if (scope === "all"){
       var groups = [S.group]; ALL.forEach(function(x){ if (groups.indexOf(x.g) < 0) groups.push(x.g); });
       $("busList").innerHTML = groups.map(function(g){
         var L = ALL.filter(function(x){ return x.g === g; }); if (!L.length) return "";
@@ -1013,11 +1031,16 @@ function chaperone(){
       }).join("");
     } else $("busList").innerHTML = nameRows(bm, now, null, mine);
     var bl = BUS.filter(function(x){return x.k===busKey;})[0].l, missing = miss.map(missTxt);
-    var rpt = "🚌 " + (busScope === "all" ? "Whole bus" : (S.group||"My group")) + " (" + (S.name||"chaperone") + ") — " + bl + ": " + on + "/" + BL.length +
-      (!missing.length ? ". All here ✔" : fewLeft ? ". Missing: " + missing.join(", ") : ". Still missing " + missing.length + (busScope === "all" ? " (" + byGroupCounts() + ")" : ""));
+    var rpt = "🚌 " + (scope === "all" ? "Whole bus" : (S.group||"My group")) + " (" + (S.name||"chaperone") + ") — " + bl + ": " + on + "/" + BL.length +
+      (!missing.length ? ". All here ✔" : fewLeft ? ". Missing: " + missing.join(", ") : ". Still missing " + missing.length + (scope === "all" ? " (" + byGroupCounts() + ")" : ""));
     var BB = parseLines(S.backups).filter(function(b){return b.p;});
+    var shareUrl = busShareUrl(), shareMsg = "\ud83d\ude8c " + (S.name||"Chaperone") + "'s bus count (" + bl + ", " + on + "/" + BL.length + "). Tap to load the checkmarks on your phone: " + shareUrl;
     $("busReport").innerHTML = '<h2>Send this count</h2><div class="small muted" style="margin-bottom:8px">'+esc(rpt)+'</div>' +
-      (BB.length ? BB.map(function(b){ return '<a class="btn" href="'+smsHref(b.p, rpt)+'">Text to '+esc(b.n)+'</a>'; }).join("") : '<p class="muted small" style="margin:0">Add the other chaperones on the Setup tab to send this.</p>');
+      (BB.length ? BB.map(function(b){ return '<a class="btn" href="'+smsHref(b.p, rpt)+'">Text to '+esc(b.n)+'</a>'; }).join("") : '<p class="muted small" style="margin:0">Add the other chaperones on the Setup tab to send this.</p>') +
+      (on ? '<h2 style="margin-top:14px">Share my checkmarks</h2><p class="small muted" style="margin:0 0 8px">Sends a link. When they tap it, their Bus count shows your checkmarks too, with no setup needed.</p>' +
+        BB.map(function(b){ return '<a class="btn primary" href="'+smsHref(b.p, shareMsg)+'">Send checkmarks to '+esc(b.n)+'</a>'; }).join("") +
+        '<button class="btn" id="busShareCopy">Copy checkmarks link</button>' : '');
+    var cpy = $("busShareCopy"); if (cpy) cpy.onclick = function(){ copyStr(shareMsg, "Checkmarks link copied"); };
     // lost
     $("lostWho").innerHTML = '<option value="">Choose a student…</option>' + R.map(function(s){return '<option'+(s.n===S.lost.who?" selected":"")+'>'+esc(s.n)+'</option>';}).join("");
     $("lostWhere").value = S.lost.where||""; $("lostWear").value = S.lost.wear||"";
@@ -1033,6 +1056,7 @@ function chaperone(){
       tc.phones.map(function(ph){ return '<a class="btn" href="'+telHref(ph)+'">Call '+esc(tc.name)+' '+esc(ph)+'</a>'; }).join("");
   }
   render(); setInterval(render, 60000);
+  if (openBusTab){ var bt = document.querySelector("#tabs .tab[data-t=bus]"); if (bt) bt.click(); }
 }
 
 // =================== ROUTER ===================
