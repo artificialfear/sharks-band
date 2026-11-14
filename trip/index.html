@@ -93,6 +93,9 @@
   .snav button.on{color:var(--teal-hi);background:var(--panel2)}
   .snav button.sos.on{color:#ffd6d6;background:#3a1416}
   #helpJump{margin-bottom:12px}
+  .ctabs button.tab{flex:1;border:none;background:none;color:var(--muted);border-radius:12px;padding:6px 2px;font-size:12px;font-weight:800}
+  .ctabs button.tab.on{background:var(--panel2);color:var(--teal-hi);border:none}
+  .ctabs button.tab.sos.on{background:#3a1416;color:#ffd6d6}
   .pick{display:flex;align-items:center;gap:10px;padding:10px 4px;margin:0;border-bottom:1px dashed var(--line);font-size:16px;text-transform:none;letter-spacing:normal;color:var(--text);font-weight:600}
   .pick input{width:22px;height:22px;flex:none;accent-color:var(--teal)}
   .pick .g{margin-left:auto;font-size:12px;color:var(--muted)}
@@ -215,12 +218,12 @@
 
 <!-- =================== CHAPERONE VIEW =================== -->
 <section id="chap" class="hide">
-  <nav class="tabs" id="tabs">
-    <button class="tab on" data-t="setup">Setup</button>
-    <button class="tab" data-t="checkins">Check-ins</button>
-    <button class="tab" data-t="bus">Bus count</button>
-    <button class="tab" data-t="lost">Lost student</button>
-    <button class="tab" data-t="team">Chaperones</button>
+  <nav class="snav ctabs" id="tabs">
+    <button class="tab on" data-t="setup"><span class="ic">&#9881;&#65039;</span>Setup</button>
+    <button class="tab" data-t="checkins"><span class="ic">&#9989;</span>Check-ins</button>
+    <button class="tab" data-t="bus"><span class="ic">&#128652;</span>Bus</button>
+    <button class="tab sos" data-t="lost"><span class="ic">&#128680;</span>Lost</button>
+    <button class="tab" data-t="team"><span class="ic">&#128101;</span>Team</button>
   </nav>
 
   <!-- setup -->
@@ -646,6 +649,7 @@ function parseLines(txt){
 }
 function chaperone(){
   show("chap");
+  document.body.classList.add("has-snav");
   var S = chapState();
   function save(){ put(CK, S); }
   var editing = false;
