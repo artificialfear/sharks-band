@@ -65,3 +65,4 @@
 - Chaperone polls `/<topic>/json?poll=1&since=` every 30 s (since = last message time, stored per topic in `S.rs`), dedupes by note id (`S.seen`), assigns to the nearest check-in, fuzzy-matches the tapper's name only (buddies deliberately NOT checked, Mat's call) to the roster (`matchName`), writes "h:mm · app". Unmatched main names go in `S.um`.
 - No secret in the repo: only phones holding the group's BAND chat link can derive topic/key. Relay never sees plaintext.
 - Not testable from the build sandbox (ntfy.sh blocked); tests/trip_autocheck.py fakes the relay with Playwright routes.
+- Chaperone also holds a live EventSource on `/<topic>/sse?since=` while the page is visible (closed when hidden, reopened on return); 30 s polling stays as a fallback.

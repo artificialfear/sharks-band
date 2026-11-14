@@ -1219,10 +1219,36 @@ function chaperone(){
         items.forEach(function(x){ if (applyNote(x.p)) changed = true; if (x.m.time && x.m.time > (S.rs[r.topic]||0)) S.rs[r.topic] = x.m.time; });
         autoState = {ok:true, at:Date.now()};
         save(); if (changed) render(); else renderAuto();
+        if (!document.hidden) openLive();
       });
     }).catch(function(){ autoState = {ok:false, at:autoState.at}; renderAuto(); }).then(function(){ polling = false; });
   }
   window.__poll = pollRelay;
+  // live connection: check-ins arrive within a second or two while this page is open. Polling stays on as a safety net.
+  var live = null, liveTopic = "";
+  function openLive(){
+    if (!S.band || !window.EventSource) return;
+    relayFor(S.band).then(function(r){
+      if (live && liveTopic === r.topic && live.readyState !== 2) return;
+      if (live) try { live.close(); } catch(e){}
+      S.rs = S.rs || {}; liveTopic = r.topic;
+      var since = S.rs[r.topic] ? Math.max(0, S.rs[r.topic] - 1) : "12h";
+      live = new EventSource(RELAY + r.topic + "/sse?since=" + since);
+      live.onopen = function(){ autoState = {ok:true, at:Date.now()}; renderAuto(); };
+      live.onmessage = function(ev){
+        var m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+        if (!m || m.event !== "message") return;
+        relayOpen(r, m.message).catch(function(){ return null; }).then(function(pl){
+          var changed = applyNote(pl);
+          if (m.time && m.time > (S.rs[r.topic]||0)) S.rs[r.topic] = m.time;
+          autoState = {ok:true, at:Date.now()}; save();
+          if (changed) render(); else renderAuto();
+        });
+      };
+    }).catch(function(){});
+  }
+  function closeLive(){ if (live){ try { live.close(); } catch(e){} live = null; } }
+  window.__live = function(){ return live ? live.readyState : -1; };
 
   function nameRows(map, now, deadline, list){
     return (list || roster()).map(function(s){
@@ -1323,8 +1349,8 @@ function chaperone(){
     })();
   }
   render(); setInterval(render, 60000);
-  pollRelay(); setInterval(pollRelay, 30000);
-  document.addEventListener("visibilitychange", function(){ if (!document.hidden) pollRelay(); });
+  pollRelay(); openLive(); setInterval(function(){ pollRelay(); openLive(); }, 30000);
+  document.addEventListener("visibilitychange", function(){ if (document.hidden) closeLive(); else { pollRelay(); openLive(); } });
   if (openBusTab){ var bt = document.querySelector("#tabs .tab[data-t=bus]"); if (bt) bt.click(); }
 }
 

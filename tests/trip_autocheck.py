@@ -16,6 +16,7 @@ srv=http.server.ThreadingHTTPServer(("127.0.0.1",0),h); threading.Thread(target=
 base="http://127.0.0.1:%d/trip/index.html"%srv.server_port
 
 RELAY={}   # topic -> [msg]
+SSE_HITS=[]
 CORS={"Access-Control-Allow-Origin":"*"}
 def relay(route, request):
     u=urllib.parse.urlparse(request.url); parts=u.path.strip("/").split("/")
@@ -27,6 +28,10 @@ def relay(route, request):
     q=urllib.parse.parse_qs(u.query); since=q.get("since",["12h"])[0]
     msgs=RELAY.get(topic,[])
     if since.isdigit(): msgs=[m for m in msgs if m["time"]>=int(since)]
+    if len(parts)>1 and parts[1]=="sse":
+        SSE_HITS.append(topic)
+        body="retry: 300\n\n"+"".join("data: "+json.dumps(m)+"\n\n" for m in msgs)
+        return route.fulfill(status=200, headers=dict(CORS, **{"Content-Type":"text/event-stream"}), body=body)
     return route.fulfill(status=200, headers=CORS, body="".join(json.dumps(m)+"\n" for m in msgs))
 
 BAND="https://band.us/band/12345678/chat/CAbcDEF"
@@ -96,6 +101,11 @@ with sync_playwright() as pw:
     p.locator("#ciList .name-row[data-n='Ava Jones']").click(); p.wait_for_timeout(100)
     p.evaluate("window.__poll()"); p.wait_for_timeout(800)
     check(p.inner_text("#ciTally")=="0/5", "hand undo is not overwritten by the next poll")
+    # live: a new tap shows up without calling __poll (fake SSE reconnects every 300 ms)
+    check(len(SSE_HITS)>0, "chaperone opened the live connection")
+    s4=mk().new_page(); s4.goto(link); s4.wait_for_timeout(300); s4.fill("#sNameIn","Maya Brown"); s4.click("#sNameSave")
+    s4.locator("#parkChips .chip").nth(2).click(); s4.click("#checkBtn"); s4.wait_for_timeout(1500)
+    check(any("Maya Brown" in r and "Islands" in r for r in p.locator("#ciList .name-row.ok").all_inner_texts()), "live: Maya appears without a poll, at Islands")
     if SHOTS:
         os.makedirs(SHOTS,exist_ok=True); p.evaluate("window.scrollTo(0,0)"); p.screenshot(path=os.path.join(SHOTS,"auto-chap.png"))
         s.screenshot(path=os.path.join(SHOTS,"auto-student.png"))
