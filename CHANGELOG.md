@@ -1,6 +1,6 @@
 # Changelog
 ## Trip page: auto check-off (Nov 14)
-- When a student taps "Send my check-in", their name (and buddies) now check off on their chaperone's Check-ins tab automatically, marked "app". BAND messages work exactly as before; tapping names by hand still works and an undo sticks.
+- When a student taps "Send my check-in", their name (only theirs; buddies must check in themselves) now checks off on their chaperone's Check-ins tab automatically, marked "app". BAND messages work exactly as before; tapping names by hand still works and an undo sticks.
 - Names the app can't match to the list show in a yellow box so the chaperone can tap the right person.
 - Chaperone tab shows "Auto check-off is on" or "can't connect" (then tap by hand). Students see "reached your chaperone's tracker" once it lands; if signal is bad the note waits on the phone and sends later.
 

@@ -78,11 +78,11 @@ with sync_playwright() as pw:
     p.evaluate("window.__poll()"); p.wait_for_timeout(800)
     p.click("#roundChips .chip[data-r='1']"); p.wait_for_timeout(100)
     ci=p.inner_text("#ciList")
-    check(p.inner_text("#ciTally")=="2/5", "12:00 round auto-checked 2/5: "+p.inner_text("#ciTally"))
+    check(p.inner_text("#ciTally")=="1/5", "12:00 round auto-checked 1/5 (tapper only): "+p.inner_text("#ciTally"))
     check("Ava Jones" in ci and "app" in ci, "Ava checked by the app")
     rows={r.split("\n")[0].strip() if not r.startswith("✓") else r: r for r in p.locator("#ciList .name-row").all_inner_texts()}
     ok=[r for r in p.locator("#ciList .name-row.ok").all_inner_texts()]
-    check(any("Marcus Lee" in r for r in ok) and not any("Jordan" in r for r in ok), "buddy Marcus checked, other-group Jordan not: "+str(ok))
+    check(not any("Marcus Lee" in r for r in ok) and not any("Jordan" in r for r in ok), "buddy Marcus NOT checked, other-group Jordan not: "+str(ok))
     check('"Bubba"' in p.inner_text("#ciUnmatched"), "unmatched name shown: "+p.inner_text("#ciUnmatched"))
     if SHOTS: os.makedirs(SHOTS,exist_ok=True); p.locator("#ciUnmatched").screenshot(path=os.path.join(SHOTS,"auto-um.png"))
     p.locator("#ciUnmatched .umx").first.click(); p.wait_for_timeout(100)
@@ -90,9 +90,9 @@ with sync_playwright() as pw:
     p.evaluate("window.__poll()"); p.wait_for_timeout(800)
     check(p.inner_text("#ciUnmatched")=="", "cleared name stays gone after the next poll")
     # undo by hand sticks after another poll
-    p.locator("#ciList .name-row[data-n='Marcus Lee']").click(); p.wait_for_timeout(100)
+    p.locator("#ciList .name-row[data-n='Ava Jones']").click(); p.wait_for_timeout(100)
     p.evaluate("window.__poll()"); p.wait_for_timeout(800)
-    check(p.inner_text("#ciTally")=="1/5", "hand undo is not overwritten by the next poll")
+    check(p.inner_text("#ciTally")=="0/5", "hand undo is not overwritten by the next poll")
     if SHOTS:
         os.makedirs(SHOTS,exist_ok=True); p.evaluate("window.scrollTo(0,0)"); p.screenshot(path=os.path.join(SHOTS,"auto-chap.png"))
         s.screenshot(path=os.path.join(SHOTS,"auto-student.png"))

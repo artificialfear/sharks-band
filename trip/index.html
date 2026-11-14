@@ -162,6 +162,7 @@
     <div id="parkChips"></div>
     <a class="btn primary" id="checkBtn" href="#">&#9989; Send my check-in</a>
     <p class="muted small hint-band" style="margin:8px 0 0">This copies your message and opens your group's BAND chat. <b>Paste it in the chat and send.</b></p>
+    <p class="muted small" style="margin:6px 0 0"><b>Everyone checks in on their own phone</b>, even if you're with your buddies.</p>
     <p class="small hide" id="autoNote" style="margin:6px 0 0;color:var(--good);font-weight:700"></p>
     <p class="muted small hint-sms hide" style="margin:8px 0 0">This opens your Messages app with the text ready. <b>You still have to press Send.</b></p>
   </div>
@@ -1155,7 +1156,7 @@ function chaperone(){
     S.seen.push(p.id); if (S.seen.length > 600) S.seen = S.seen.slice(-400);
     var r = roundFor(p.t); if (r < 0) return true;
     var R = roster(), key = "r"+r; S.ci[key] = S.ci[key] || {};
-    var names = [p.n].concat(String(p.b||"").split(/,|&|\+|\/|;|\band\b/i)).map(function(x){ return x.trim(); }).filter(Boolean);
+    var names = [String(p.n||"").trim()].filter(Boolean);   // only the student who tapped; buddies must check in themselves
     names.forEach(function(x, i){
       var m = matchName(x, R);
       if (m){ if (!S.ci[key][m]) S.ci[key][m] = clock(p.t) + " \u00b7 app"; }

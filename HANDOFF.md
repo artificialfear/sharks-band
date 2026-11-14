@@ -62,6 +62,6 @@
 
 ## Trip auto check-off (added trip morning, Nov 14 2026)
 - Relay: public ntfy.sh. Student tap queues `{id,n,b,t,w}` in localStorage `trip.student.outbox`, AES-GCM encrypts it (key = SHA-256("ihs-trip-key|"+normalized BAND chat link)), POSTs to `ntfy.sh/ihsband-<32 hex of SHA-256("ihs-trip-topic|"+link)>`. Retries on load/visibility/30 s; drops after 3 h.
-- Chaperone polls `/<topic>/json?poll=1&since=` every 30 s (since = last message time, stored per topic in `S.rs`), dedupes by note id (`S.seen`), assigns to the nearest check-in, fuzzy-matches name + buddies to the roster (`matchName`), writes "h:mm · app". Unmatched main names go in `S.um`.
+- Chaperone polls `/<topic>/json?poll=1&since=` every 30 s (since = last message time, stored per topic in `S.rs`), dedupes by note id (`S.seen`), assigns to the nearest check-in, fuzzy-matches the tapper's name only (buddies deliberately NOT checked, Mat's call) to the roster (`matchName`), writes "h:mm · app". Unmatched main names go in `S.um`.
 - No secret in the repo: only phones holding the group's BAND chat link can derive topic/key. Relay never sees plaintext.
 - Not testable from the build sandbox (ntfy.sh blocked); tests/trip_autocheck.py fakes the relay with Playwright routes.
