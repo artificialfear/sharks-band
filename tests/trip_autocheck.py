@@ -84,6 +84,11 @@ with sync_playwright() as pw:
     ok=[r for r in p.locator("#ciList .name-row.ok").all_inner_texts()]
     check(any("Marcus Lee" in r for r in ok) and not any("Jordan" in r for r in ok), "buddy Marcus checked, other-group Jordan not: "+str(ok))
     check('"Bubba"' in p.inner_text("#ciUnmatched"), "unmatched name shown: "+p.inner_text("#ciUnmatched"))
+    if SHOTS: os.makedirs(SHOTS,exist_ok=True); p.locator("#ciUnmatched").screenshot(path=os.path.join(SHOTS,"auto-um.png"))
+    p.locator("#ciUnmatched .umx").first.click(); p.wait_for_timeout(100)
+    check(p.inner_text("#ciUnmatched")=="", "x clears the unmatched name")
+    p.evaluate("window.__poll()"); p.wait_for_timeout(800)
+    check(p.inner_text("#ciUnmatched")=="", "cleared name stays gone after the next poll")
     # undo by hand sticks after another poll
     p.locator("#ciList .name-row[data-n='Marcus Lee']").click(); p.wait_for_timeout(100)
     p.evaluate("window.__poll()"); p.wait_for_timeout(800)

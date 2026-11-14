@@ -100,6 +100,8 @@
   #busScope{display:flex;gap:4px;background:#070a0b;border:1px solid var(--line);border-radius:14px;padding:4px}
   #busScope .chip{flex:1;border:none;border-radius:10px;background:none;padding:12px 6px;font-size:16px;font-weight:800;color:var(--muted)}
   #busScope .chip.on{background:var(--teal);color:#041011}
+  .umrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font-weight:700}
+  .umx{flex:none;width:40px;height:40px;border-radius:10px;border:2px solid var(--line);background:var(--panel);color:var(--text);font-size:22px;font-weight:800;line-height:1}
   #roundChips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
   #roundChips .chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border-radius:12px;padding:9px 11px;
     background:var(--panel);border:2px solid var(--line);font-size:15px;font-weight:800;color:var(--text)}
@@ -1014,6 +1016,10 @@ function chaperone(){
   // check-ins
   var round = (function(){ var now=new Date(), r=0; T.checkins.forEach(function(c,i){ var d=at(c.time); if(d && d<=new Date(now.getTime()+30*60000)) r=i; }); return r; })();
   $("roundChips").onclick = function(e){ var b=e.target.closest(".chip"); if(!b) return; round=+b.dataset.r; render(); };
+  $("ciUnmatched").onclick = function(e){
+    var b = e.target.closest(".umx"); if (!b) return;
+    S.um = (S.um||[]).filter(function(x, i){ return i !== +b.dataset.um; }); save(); render();
+  };
   $("ciList").onclick = function(e){
     var b=e.target.closest(".name-row"); if(!b) return;
     var key = "r"+round; S.ci[key] = S.ci[key]||{};
@@ -1209,9 +1215,9 @@ function chaperone(){
     $("ciTally").textContent = done + "/" + R.length;
     $("ciSub").textContent = c.label + (c.inPerson ? " (in person" + (c.place? ": "+c.place : "") + ")" : " (text)");
     $("ciList").innerHTML = nameRows(m, now, dl);
-    var um = (S.um||[]).filter(function(x){ return x.r === round; });
-    $("ciUnmatched").innerHTML = um.length ? '<div class="card small" style="border-color:var(--warn)"><b style="color:var(--warn)">From the app, not matched to your list:</b> ' +
-      esc(um.map(function(x){ return '"' + x.n + '" (' + x.t + ')'; }).join(", ")) + '. Tap the right name below.</div>' : "";
+    var um = (S.um||[]).map(function(x, i){ return {x:x, i:i}; }).filter(function(o){ return o.x.r === round; });
+    $("ciUnmatched").innerHTML = um.length ? '<div class="card small" style="border-color:var(--warn)"><b style="color:var(--warn)">From the app, not matched to your list.</b> Tap the right name below, or \u00d7 to clear.' +
+      um.map(function(o){ return '<div class="umrow"><span>"' + esc(o.x.n) + '" (' + esc(o.x.t) + ')</span><button class="umx" data-um="' + o.i + '" aria-label="Clear">\u00d7</button></div>'; }).join("") + '</div>' : "";
     if (autoState.ok === null && S.band && !polling) pollRelay(); else renderAuto();
     // bus
     var ALL = allStudents(), mine = myGroup(), multi = ALL.length > mine.length;
