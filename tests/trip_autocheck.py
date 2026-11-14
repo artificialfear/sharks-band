@@ -49,7 +49,7 @@ with sync_playwright() as pw:
     # name matching
     mn=lambda t: p.evaluate("window.__matchName(%s, [{n:'Jordan Smith'},{n:'Ava Jones'},{n:'Marcus Lee'},{n:'Maya Brown'},{n:'Maya Banks'}])"%json.dumps(t))
     check(mn("ava jones ")=="Ava Jones" and mn("Ava")=="Ava Jones" and mn("ava j")=="Ava Jones" and mn("Jones")==None, "match: full, first-only, first+initial")
-    check(mn("Maya")==None and mn("maya brown")=="Maya Brown" and mn("Maya Br")=="Maya Brown" and mn("M. Lee")=="Marcus Lee", "match: ambiguous first name refused, last name works")
+    check(mn("Maya")==None and mn("maya brown")=="Maya Brown" and mn("Maya Br")=="Maya Brown" and mn("M. Lee")=="Marcus Lee" and mn("John Lee")==None and mn("Kim Jones")==None, "match: ambiguous first name refused, last name works")
     # student
     sc=mk(); s=sc.new_page(); s.on("pageerror",lambda e: errs.append(str(e)))
     link=base+"#s="+s.evaluate("""(o)=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')""",

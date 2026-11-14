@@ -1132,7 +1132,8 @@ function chaperone(){
     c = list.filter(function(x){ var p = normName(x.n).split(" "); if (p[0] !== tt[0]) return false;
       return tt.length === 1 || (p.length > 1 && p[p.length-1].indexOf(tt[tt.length-1]) === 0); });
     if (c.length === 1) return c[0].n;
-    if (tt.length > 1){ c = list.filter(function(x){ var p = normName(x.n).split(" "); return p.length > 1 && p[p.length-1] === tt[tt.length-1]; }); if (c.length === 1) return c[0].n; }
+    // last name only counts when the first part is an initial or the start of the same first name ("M. Lee", "Mar Lee"), never a different first name
+    if (tt.length > 1){ c = list.filter(function(x){ var p = normName(x.n).split(" "); return p.length > 1 && p[p.length-1] === tt[tt.length-1] && p[0].indexOf(tt[0]) === 0; }); if (c.length === 1) return c[0].n; }
     return null;
   }
   window.__matchName = matchName;
