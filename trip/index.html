@@ -100,6 +100,16 @@
   #busScope{display:flex;gap:4px;background:#070a0b;border:1px solid var(--line);border-radius:14px;padding:4px}
   #busScope .chip{flex:1;border:none;border-radius:10px;background:none;padding:12px 6px;font-size:16px;font-weight:800;color:var(--muted)}
   #busScope .chip.on{background:var(--teal);color:#041011}
+  #roundChips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  #roundChips .chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border-radius:12px;padding:9px 11px;
+    background:var(--panel);border:2px solid var(--line);font-size:15px;font-weight:800;color:var(--text)}
+  #roundChips .chip .bn{color:var(--teal-hi);font-size:12px;letter-spacing:.06em}
+  #roundChips .chip .bc{font-size:13px;font-weight:700;color:var(--muted)}
+  #roundChips .chip.done .bc{color:var(--good)}
+  #roundChips .chip.late{border-color:#7a2a2e;background:#24100f}
+  #roundChips .chip.late .bc{color:var(--bad)}
+  #roundChips .chip.on{border-color:var(--teal-hi);background:#0f2a29}
+  #roundChips .chip.on.late{border-color:var(--bad)}
   #busChips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
   #busChips .chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border-radius:12px;padding:9px 11px;
     background:var(--panel);border:2px solid var(--line);font-size:14px;font-weight:800;color:var(--text)}
@@ -323,7 +333,8 @@
 
   <!-- check-ins -->
   <div data-p="checkins" class="hide">
-    <div class="chips" id="roundChips"></div>
+    <div class="seclbl">Which check-in?</div>
+    <div id="roundChips"></div>
     <div class="card">
       <div class="row" style="align-items:center">
         <div><div class="tally" id="ciTally">0/0</div><div class="muted small" id="ciSub"></div></div>
@@ -1049,7 +1060,13 @@ function chaperone(){
   function render(){
     var now = new Date(), R = roster();
     // check-ins
-    $("roundChips").innerHTML = T.checkins.map(function(c,i){ return '<button class="chip'+(i===round?" on":"")+'" data-r="'+i+'">'+fmt12(c.time)+(c.inPerson?" · lunch":"")+'</button>'; }).join("");
+    $("roundChips").innerHTML = T.checkins.map(function(c,i){
+      var mm = S.ci["r"+i] || {}, got = R.filter(function(s){ return mm[s.n]; }).length, done = R.length && got === R.length;
+      var due = at(c.time), late = !done && due && now > new Date(due.getTime() + 15*60000);
+      var status = done ? got + "/" + R.length + " \u2714" : late ? got + "/" + R.length + " \u00b7 " + (R.length - got) + " late" : got ? got + "/" + R.length : "not yet";
+      return '<button class="chip'+(i===round?" on":"")+(done?" done":"")+(late?" late":"")+'" data-r="'+i+'"><span class="bn">'+(i+1)+'</span>'+fmt12(c.time)+
+        '<span class="bc">'+status+'</span></button>';
+    }).join("");
     var c = T.checkins[round], m = S.ci["r"+round]||{}, done = R.filter(function(s){return m[s.n];}).length;
     var dl = at(c.time); dl = dl ? new Date(dl.getTime()+15*60000) : null;
     $("ciTally").textContent = done + "/" + R.length;

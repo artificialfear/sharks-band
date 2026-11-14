@@ -1,4 +1,7 @@
 # Changelog
+## Trip page: Check-ins tab boxes (Nov 14)
+- Chaperone Check-ins tab: the round pills are now numbered boxes under "Which check-in?", matching the Bus tab. Each box shows progress (e.g. 6/10, 10/10 ✔ in green, or "not yet"), and turns red with a late count once the check-in is 15+ minutes past and incomplete.
+
 ## v1.4.1 (2026-11-11)
 - The home screen shows a countdown to the Winter Band Concert (Wed, Dec 9, 2026). It hides itself after the concert, and Settings can change it.
 
