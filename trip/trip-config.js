@@ -16,7 +16,7 @@ window.TRIP = {
     { time: "12:00", label: "Check-in 2" },
     { time: "14:00", label: "Check-in 3" },
     { time: "16:00", label: "Check-in 4" },
-    { time: "18:00", label: "Check-in 5 + meet up at the Islands of Adventure Lighthouse" }
+    { time: "18:00", label: "Check-in 5 + head to the Lighthouse for the 6:30 meet-up" }
   ],
 
   // Day schedule shown to students and chaperones.
@@ -25,8 +25,7 @@ window.TRIP = {
     { time: "04:45", what: "Arrive at Islands High School for check-in and boarding" },
     { time: "05:00", what: "Bus leaves for Orlando (one rest stop on the way, snack and juice included)" },
     { time: "10:00", what: "Arrive at Universal Orlando. Park-to-Park: Universal Studios and Islands of Adventure" },
-    { time: "18:00", what: "Meet up at the Islands of Adventure Lighthouse" },   // the 6:00 check-in reminder covers this
-    { time: "18:30", what: "Bus leaves for home (one rest stop on the way)" },
+    { time: "18:30", what: "Meet up at the Islands of Adventure Lighthouse. The bus leaves for home right after (one rest stop on the way)" },   // moved from 6:00 (Mat, Nov 14 5:39 PM)
     { time: "23:30", what: "Arrive back at Islands High School" }
   ],
 
@@ -47,7 +46,7 @@ window.TRIP = {
     "Keep your phone charged and BAND notifications on. Bring a battery pack if you have one.",
     "Both parks are OK (Park-to-Park). You may not spend time in CityWalk.",
     "Lunch and dinner are on your own inside the park.",
-    "Meet up at 6:00 PM at the Islands of Adventure Lighthouse. The bus leaves at 6:30.",
+    "Meet up at 6:30 PM at the Islands of Adventure Lighthouse. The bus leaves right after.",
     "At rest stops, stay with your buddies and get back on the bus as soon as you're called."
   ],
 
