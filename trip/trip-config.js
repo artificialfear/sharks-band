@@ -34,7 +34,7 @@ window.TRIP = {
 
   bus: { pickup: "Kelly Tours motor coach. TBD: where it parks at Universal",
          note: "Take a photo of where the bus is parked. Trip #31740." },
-  regroup: "TBD: where to go",
+  regroup: "Contact your chaperone for a meetup spot.",
 
   // Shown to chaperones only (Chaperones tab).
   tourCompany: { name: "Kelly Tours", trip: "31740", phones: ["(912) 964-2010", "800-442-6152"] },
