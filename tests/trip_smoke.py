@@ -165,7 +165,7 @@ with sync_playwright() as pw:
     check("Mr. Graham or Ms. Kaitlyn" in s.inner_text("#backupBox"), "backup chaperones named for BAND")
     check("2:00 PM" in s.inner_text("#cdLbl") and "Check-in 3" in s.inner_text("#cdLbl") and "tap Send my check-in" in s.inner_text("#cdLbl"),"countdown at 12:52 points to the 2:00 check-in: "+s.inner_text("#cdLbl"))
     sched=s.evaluate("document.getElementById('sched').innerText")
-    check("Lunch" not in sched and "6:00 PM" in sched and "Meet up at TBD location" in sched and "6:15" not in sched, "schedule: no lunch meetup, 6:00 meet-up")
+    check("Lunch" not in sched and "6:00 PM" in sched and "Meet up at the Islands of Adventure Lighthouse" in sched and "6:15" not in sched, "schedule: no lunch meetup, 6:00 meet-up")
     for t in ["home","help","sched","info"]:
         s.click("#snav button[data-st=%s]" % t); s.wait_for_timeout(150)
         if SHOTS: s.screenshot(path=os.path.join(SHOTS, "st-%s.png" % t))
