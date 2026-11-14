@@ -160,10 +160,10 @@ with sync_playwright() as pw:
     s.locator("#parkChips .chip").nth(2).click()
     body=s.evaluate("window.__msg('check')")
     check("Ava Jones (with Maya, Chris)" in body and "In Islands of Adventure." in body and "maps.google.com" in body,"check-in message correct: "+body)
-    check(s.get_attribute("#checkBtn","href").startswith("https://band.us/"), "check-in opens BAND")
+    check(s.get_attribute("#checkBtn","href")=="#" and s.get_attribute("#bandBackup","href").startswith("https://band.us/"), "check-in stays on page; BAND backup link")
     check("912" not in s.inner_text("#student"), "no phone numbers anywhere on student page")
     check("Mr. Graham or Ms. Kaitlyn" in s.inner_text("#backupBox"), "backup chaperones named for BAND")
-    check("2:00 PM" in s.inner_text("#cdLbl") and "Check-in 3" in s.inner_text("#cdLbl") and "send it in BAND" in s.inner_text("#cdLbl"),"countdown at 12:52 points to the 2:00 check-in: "+s.inner_text("#cdLbl"))
+    check("2:00 PM" in s.inner_text("#cdLbl") and "Check-in 3" in s.inner_text("#cdLbl") and "tap Send my check-in" in s.inner_text("#cdLbl"),"countdown at 12:52 points to the 2:00 check-in: "+s.inner_text("#cdLbl"))
     sched=s.evaluate("document.getElementById('sched').innerText")
     check("Lunch" not in sched and "6:00 PM" in sched and "Meet up at TBD location" in sched and "6:15" not in sched, "schedule: no lunch meetup, 6:00 meet-up")
     for t in ["home","help","sched","info"]:

@@ -1,4 +1,9 @@
 # Changelog
+## Trip page: check-in no longer opens BAND (Nov 14)
+- "Send my check-in" now checks the student in through the tracker and copies the message, but stays on the page. BAND is the backup: a "Open my group's BAND chat (backup)" link sits under the button.
+- Students see a yellow "Sending…" line until it lands, then a green "reached your chaperone's tracker" line. If it stays yellow, they paste the copied message in BAND.
+- Help buttons (separated, sick, other) still open BAND as before.
+
 ## Trip page: auto check-off (Nov 14)
 - When a student taps "Send my check-in", their name (only theirs; buddies must check in themselves) now checks off on their chaperone's Check-ins tab automatically, marked "app". BAND messages work exactly as before; tapping names by hand still works and an undo sticks.
 - Names the app can't match to the list show in a yellow box so the chaperone can tap the right person.

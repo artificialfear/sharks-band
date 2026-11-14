@@ -161,9 +161,10 @@
     <div class="seclbl" style="margin-top:0">Where are you right now?</div>
     <div id="parkChips"></div>
     <a class="btn primary" id="checkBtn" href="#">&#9989; Send my check-in</a>
-    <p class="muted small hint-band" style="margin:8px 0 0">This copies your message and opens your group's BAND chat. <b>Paste it in the chat and send.</b></p>
+    <p class="muted small hint-band" style="margin:8px 0 0">This checks you in with your chaperone and copies your message. You don't need to open BAND unless your chaperone asks or the check-in won't send.</p>
     <p class="muted small" style="margin:6px 0 0"><b>Everyone checks in on their own phone</b>, even if you're with your buddies.</p>
-    <p class="small hide" id="autoNote" style="margin:6px 0 0;color:var(--good);font-weight:700"></p>
+    <p class="small hide" id="autoNote" style="margin:8px 0 0;color:var(--good);font-weight:700"></p>
+    <a class="hint-band" id="bandBackup" href="#" style="display:inline-block;margin-top:8px;font-size:14px;font-weight:700;color:var(--teal-hi)">Open my group's BAND chat (backup) &rsaquo;</a>
     <p class="muted small hint-sms hide" style="margin:8px 0 0">This opens your Messages app with the text ready. <b>You still have to press Send.</b></p>
   </div>
 
@@ -607,7 +608,8 @@ function student(info){
   window.__msg = msg;
   var BTN = {checkBtn:"check", lostBtn:"lost", sickBtn:"sick", otherBtn:"other"};
   function refreshLinks(){
-    Object.keys(BTN).forEach(function(id){ $(id).href = useBand ? info.k : smsHref(info.p, msg(BTN[id])); });
+    Object.keys(BTN).forEach(function(id){ $(id).href = useBand ? (id === "checkBtn" ? "#" : info.k) : smsHref(info.p, msg(BTN[id])); });
+    if (useBand) $("bandBackup").href = info.k;
     $("callBtn").href = useBand ? info.k : telHref(info.p);
     renderLoc();
   }
@@ -685,7 +687,7 @@ function student(info){
     if (flushing || !info.k) return;
     var q = get(OUT, []).filter(function(x){ return Date.now() - x.t < 3*3600*1000; });
     put(OUT, q); if (!q.length) return;
-    flushing = true;
+    flushing = true; var okRun = false;
     relayFor(info.k).then(function(r){
       return q.reduce(function(chain, item){
         return chain.then(function(){
@@ -699,15 +701,23 @@ function student(info){
             showAutoNote();
           });
         });
-      }, Promise.resolve());
-    }).catch(function(){}).then(function(){ flushing = false; });
+      }, Promise.resolve()).then(function(){ okRun = true; });
+    }).catch(function(){}).then(function(){ flushing = false; showAutoNote(); if (okRun && get(OUT, []).length) setTimeout(flushOutbox, 300); });
   }
   window.__flush = flushOutbox;
-  function showAutoNote(){ var t = get("trip.student.autoNote", ""); $("autoNote").textContent = t; $("autoNote").classList.toggle("hide", !t); }
+  function showAutoNote(){
+    var q = get(OUT, []), el = $("autoNote"), t;
+    if (q.length){
+      var d = new Date(q[q.length-1].t), h = d.getHours()%12||12;
+      t = "\u23f3 Sending your " + h + ":" + pad(d.getMinutes()) + (d.getHours()<12?" AM":" PM") + " check-in\u2026 It keeps trying if you have no signal. If this doesn't turn green in a few minutes, paste your copied message in BAND.";
+      el.style.color = "var(--warn)";
+    } else { t = get("trip.student.autoNote", ""); el.style.color = "var(--good)"; }
+    el.textContent = t; el.classList.toggle("hide", !t);
+  }
   showAutoNote();
   flushOutbox();
   document.addEventListener("visibilitychange", function(){ if (!document.hidden) flushOutbox(); });
-  setInterval(flushOutbox, 30000);
+  setInterval(flushOutbox, 15000);
   // check-in time inside the text should be the time of tapping
   ["checkBtn","lostBtn","sickBtn","otherBtn"].forEach(function(id){
     $(id).addEventListener("click", function(e){
@@ -715,11 +725,14 @@ function student(info){
       refreshLinks();
       if (useBand){
         var t = msg(BTN[id]); copyText(t);
-        if (id === "checkBtn"){
-          var q = get(OUT, []); q.push({id: Date.now().toString(36) + Math.random().toString(36).slice(2,8), n:name, b:buddies, t:Date.now(), w:park});
-          put(OUT, q); flushOutbox();
-        }
         $("lastMsg").textContent = t; $("lastMsgBox").classList.remove("hide"); put("trip.student.lastMsg", t);
+        if (id === "checkBtn"){   // check-in goes through the tracker; BAND is the backup, so stay on this page
+          e.preventDefault();
+          var q = get(OUT, []); q.push({id: Date.now().toString(36) + Math.random().toString(36).slice(2,8), n:name, b:buddies, t:Date.now(), w:park});
+          put(OUT, q); showAutoNote(); flushOutbox();
+          toast("Checking you in\u2026 (message copied too)");
+          return;
+        }
         toast("Copied! Paste it in BAND");
       }
     }, true);
@@ -747,7 +760,7 @@ function student(info){
     if (now < tripDay) { $("cd").textContent = fmt12(next.time); $("cdLbl").textContent = "First check-in on trip day"; return; }
     if (ms <= 0){ $("cd").textContent = "NOW"; $("cd").className="countdown now"; }
     else { var m = Math.ceil(ms/60000), h = Math.floor(m/60); $("cd").textContent = (h? h+"h ":"") + (m%60) + "m"; $("cd").className="countdown"; }
-    $("cdLbl").textContent = fmt12(next.time) + " · " + next.label + (next.inPerson ? " — meet in person: " + (next.place||"") : (info.k ? " \u2014 send it in BAND" : " \u2014 text check-in"));
+    $("cdLbl").textContent = fmt12(next.time) + " · " + next.label + (next.inPerson ? " — meet in person: " + (next.place||"") : (info.k ? " \u2014 tap Send my check-in" : " \u2014 text check-in"));
   }
   tick(); setInterval(tick, 20000);
 }
