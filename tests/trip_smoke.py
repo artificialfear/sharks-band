@@ -105,7 +105,7 @@ with sync_playwright() as pw:
     kc=p.locator("#teamRows [data-g=\"Ms. Kaitlyn's Group\"]"); kc.locator("input[data-f=p]").fill("912-555-0400"); kc.locator("input[data-f=k]").fill("https://band.us/band/999/chat/KAIT")
     x=p.evaluate("window.__buildFor(\"Mrs. Graham's Group\")")
     check(x and x["s"]["roster"]=="Kai Doe" and "Ms. Kaitlyn, 912-555-0400" in x["s"]["backups"] and x["s"]["band"]=="https://band.us/band/999/chat/EMILY", "setup payload for Mrs. Graham: "+str(x and x["s"]))
-    setup_url = p.evaluate("location.href.split('#')[0] + '#chap&setup=' + (function(){ var d={s:window.__buildFor(\"Mrs. Graham's Group\").s, m:JSON.parse(localStorage.getItem('trip.master.v1'))}; return btoa(unescape(encodeURIComponent(JSON.stringify(d)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,''); })()")
+    setup_url = p.evaluate("location.href.split('#')[0] + '#chap&setup=' + (function(){ var d={t:window.TRIP.id, s:window.__buildFor(\"Mrs. Graham's Group\").s, m:JSON.parse(localStorage.getItem('trip.master.v1'))}; return btoa(unescape(encodeURIComponent(JSON.stringify(d)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,''); })()")
     ctx3=b.new_context(viewport={"width":390,"height":844}, is_mobile=True, has_touch=True); e3=ctx3.new_page(); e3.on("pageerror",lambda e: errs.append(str(e)))
     e3.goto(setup_url); e3.wait_for_timeout(500)
     sd=e3.inner_text("#setupDone")

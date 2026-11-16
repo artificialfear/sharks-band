@@ -1,4 +1,12 @@
 # Changelog
+## Trip page: reusable template (Nov 16)
+- trip-config.js now has a NEW TRIP CHECKLIST at the top and new fields: `id`, `home`, `venue`, `venueHelp`, and parks with short labels. Universal/Islands wording is no longer hard-coded in the page.
+- A new trip `id` clears the last trip's check-ins, roster, bus counts and student settings from every phone on first load (the student's name is kept), and gives each group a new auto check-off channel even if BAND chats are reused.
+- Student and setup links from an earlier trip show "This link is from an earlier trip" and change nothing.
+- After the trip date, students and chaperones see a "This trip is over" card.
+- Chaperone Setup tab: "Clear all trip data on this phone" (tap twice).
+- Removed the unused `bus` setting (the page never showed it).
+
 ## Trip page: check-in no longer opens BAND (Nov 14)
 - "Send my check-in" now checks the student in through the tracker and copies the message, but stays on the page. BAND is the backup: a "Open my group's BAND chat (backup)" link sits under the button.
 - Students see a yellow "Sending…" line until it lands, then a green "reached your chaperone's tracker" line. If it stays yellow, they paste the copied message in BAND.

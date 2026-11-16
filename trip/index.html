@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07090a">
 <meta name="robots" content="noindex">
-<title>Islands Band Trip</title>
+<title>Band Trip</title>
 <link rel="icon" href="../assets/shark.png?v=1">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -135,7 +135,7 @@
 <body>
 <header><div class="wrap">
   <img src="../assets/shark.png?v=1" alt="">
-  <div><h1>Islands <span>Band</span></h1><div class="sub" id="hdrSub"></div></div>
+  <div><h1 id="hdrBand">Band</h1><div class="sub" id="hdrSub"></div></div>
 </div></header>
 
 <main class="wrap">
@@ -143,6 +143,7 @@
 <!-- =================== STUDENT VIEW =================== -->
 <section id="student" class="hide">
  <div class="spane" data-st="home">
+  <div class="card hide overCard" style="border-color:var(--teal)"><h2>This trip is over</h2><p style="margin:0">Thanks for a great trip! This page was for <span class="overWhat"></span>. Your chaperone will send a new link for the next trip.</p></div>
   <div class="card" id="whoCard">
     <h2>Your chaperone</h2>
     <div class="big" id="sChap"></div>
@@ -176,7 +177,7 @@
     <div class="countdown" id="cd">--</div>
     <div class="next-lbl" id="cdLbl"></div>
     <div style="height:10px"></div>
-    <a class="btn" id="icsBtn" href="#" download="islands-band-trip.ics">&#9200; Add check-in reminders to my calendar</a>
+    <a class="btn" id="icsBtn" href="#" download="band-trip.ics">&#9200; Add check-in reminders to my calendar</a>
     <p class="muted small" style="margin:8px 0 0" id="alarmTxt"></p>
   </div>
 
@@ -209,7 +210,7 @@
       <div id="lastMsg" style="font-size:15px;-webkit-user-select:text;user-select:text"></div>
     </div>
     <div id="backupBox"></div>
-    <p class="small" style="margin:12px 0 0"><b>Can't reach any chaperone?</b> Find any Universal team member or go to Guest Services and say you're with a school group. <b>Real emergency: call 911.</b></p>
+    <p class="small" style="margin:12px 0 0"><b>Can't reach any chaperone?</b> <span id="venueHelp"></span> <b>Real emergency: call 911.</b></p>
   </div>
 
  </div>
@@ -260,6 +261,11 @@
 
   <!-- setup -->
   <div data-p="setup">
+    <div class="card hide overCard" style="border-color:var(--teal)"><h2>This trip is over</h2><p style="margin:0">This page is still set up for <span class="overWhat"></span>. For the next trip, update trip-config.js (see the checklist at the top) or tap <b>Clear all trip data on this phone</b> below.</p></div>
+    <div class="card hide" id="oldSetup" style="border-color:#7a2a2e;background:#24100f">
+      <h2 style="color:var(--bad)">That setup link is from an earlier trip</h2>
+      <p style="margin:0">Nothing was changed. Ask the trip leader for a new setup link or QR code.</p>
+    </div>
     <div class="card hide" id="setupErr" style="border-color:#7a2a2e;background:#24100f">
       <h2 style="color:var(--bad)">That setup link didn't load</h2>
       <p style="margin:0">It was probably cut off when it was texted. Ask the trip leader to <b>show you the setup QR code</b> and scan it with your camera instead.</p>
@@ -269,7 +275,7 @@
     <div class="card">
       <h2>You</h2>
       <label for="cName">Your name (as students know you)</label>
-      <input id="cName" placeholder="e.g. Mrs. Graham">
+      <input id="cName" placeholder="e.g. Mrs. Smith">
       <label for="cGroup">Group name</label>
       <input id="cGroup" placeholder="e.g. Group A">
       <label for="cBand">Your group's BAND chat link</label>
@@ -309,7 +315,7 @@
     <div class="card">
       <h2>Backup chaperones</h2>
       <p class="muted small" style="margin-top:0">Students see only these names, never the numbers. One per line: name, number.</p>
-      <textarea id="cBackups" style="min-height:80px" placeholder="Mr. Graham, 912-555-0199&#10;Ms. Kaitlyn, 912-555-0177"></textarea>
+      <textarea id="cBackups" style="min-height:80px" placeholder="Mr. Jones, 912-555-0199&#10;Ms. Lee, 912-555-0177"></textarea>
     </div>
     <button class="btn primary" id="cSave">Save &amp; make my students' link</button>
     </div>
@@ -336,6 +342,11 @@
     </details>
     <div class="card small muted">
       <b style="color:var(--text)">Morning tip:</b> take a photo of your group at the park entrance. If someone goes missing, you'll know exactly what they're wearing.
+    </div>
+    <div class="card">
+      <h2>Start fresh</h2>
+      <p class="muted small" style="margin-top:0">Erases your setup, roster, check-ins, bus counts and lost-student notes on this phone only. Other chaperones' phones aren't touched.</p>
+      <button class="btn ghost" id="wipeAll">Clear all trip data on this phone</button>
     </div>
   </div>
 
@@ -423,10 +434,13 @@
 <section id="bad" class="hide">
   <div class="card"><p class="err">This link didn't open correctly.</p><p class="muted">Ask your chaperone to send the link again or show you the QR code.</p></div>
 </section>
+<section id="old" class="hide">
+  <div class="card"><p class="err">This link is from an earlier trip.</p><p class="muted">Ask your chaperone for this trip's link or QR code.</p></div>
+</section>
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="trip-config.js?v=12"></script>
+<script src="trip-config.js?v=13"></script>
 <script src="qrcode.js"></script>
 <script>
 (function(){
@@ -438,6 +452,29 @@ var esc = function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){
 var mem = {};
 function get(k, d){ try { var v = localStorage.getItem(k); return v==null ? (k in mem ? mem[k] : d) : JSON.parse(v); } catch(e){ return k in mem ? mem[k] : d; } }
 function put(k, v){ mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+
+// ---------- trip config: fill in defaults so a short config still works ----------
+var TID = String(T.id || T.date);
+var PARKSHORT = {};
+T.parks = (T.parks || []).map(function(x){
+  var nm = typeof x === "string" ? x : x.name;
+  PARKSHORT[nm] = (typeof x === "object" && x.short) || nm.split(" ")[0];
+  return nm;
+});
+if (!T.parks.length) T.parks = ["At the trip"];
+T.checkins = T.checkins || []; T.schedule = T.schedule || []; T.rules = T.rules || []; T.bring = T.bring || [];
+T.home = T.home || "school"; T.venue = T.venue || "the trip";
+T.venueHelp = T.venueHelp || "Find a staff member and say you're with a school group.";
+T.band = T.band || "Band";
+
+// ---------- a new trip id wipes the last trip's data on this phone ----------
+function wipeTrip(keepName){
+  var keep = keepName ? {"trip.student.name":1} : {};
+  try { Object.keys(localStorage).forEach(function(k){ if (k.indexOf("trip.") === 0 && !keep[k]) localStorage.removeItem(k); }); } catch(e){}
+  Object.keys(mem).forEach(function(k){ if (k.indexOf("trip.") === 0 && !keep[k]) delete mem[k]; });
+}
+if (get("trip.id", null) !== TID){ wipeTrip(true); put("trip.id", TID); }
+window.__wipeTrip = wipeTrip;
 
 // ---------- time ----------
 function pad(n){return (n<10?"0":"")+n;}
@@ -452,7 +489,16 @@ function fmt12(hhmm){
 }
 function nowStr(){ var d=new Date(), h=d.getHours()%12||12; return h+":"+pad(d.getMinutes())+(d.getHours()<12?" AM":" PM"); }
 var tripDay = (function(){ var p=T.date.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); })();
-$("hdrSub").textContent = T.title + " · " + tripDay.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+var tripDayStr = tripDay.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+$("hdrSub").textContent = T.title + " · " + tripDayStr;
+(function(){ var w = T.band.trim().split(/\s+/), last = w.pop();
+  $("hdrBand").innerHTML = (w.length ? esc(w.join(" ")) + " " : "") + "<span>" + esc(last) + "</span>"; })();
+document.title = T.band + " Trip";
+$("venueHelp").textContent = T.venueHelp;
+// the trip counts as over at 6 AM the day after
+var tripOver = Date.now() > new Date(tripDay.getFullYear(), tripDay.getMonth(), tripDay.getDate() + 1, 6).getTime();
+[].forEach.call(document.querySelectorAll(".overWhat"), function(el){ el.textContent = T.title + " on " + tripDayStr; });
+[].forEach.call(document.querySelectorAll(".overCard"), function(el){ el.classList.toggle("hide", !tripOver); });
 
 // ---------- phone links ----------
 function digits(p){ return String(p||"").replace(/[^\d+]/g,""); }
@@ -465,7 +511,7 @@ function dec(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); while(s.length%4) s+="
 
 // compact setup payload: {v:2, s:[name, phone, group, band, backups], m:[[name, cell, parentName, parentPhone, medical], ...]}
 function packSetup(st, students, everyone){
-  var out = {v:2, s:[st.name, st.phone||"", st.group, st.band, st.backups||""],
+  var out = {v:2, t:TID, s:[st.name, st.phone||"", st.group, st.band, st.backups||""],
           m: students.map(function(x){ var a=[x.n, x.p||"", x.pn||"", x.pp||"", x.m||""]; while (a.length > 1 && a[a.length-1] === "") a.pop(); return a; })};
   if (everyone && everyone.length){   // other groups: NAMES ONLY, for the whole-bus count
     var byG = {}, order = [];
@@ -499,7 +545,7 @@ function zipDec(s){
   return new Response(ds.readable).text().then(function(t){ return JSON.parse(t); });
 }
 function toast(m){ var t=$("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toast.t); toast.t=setTimeout(function(){t.classList.remove("on");},1800); }
-function show(id){ ["student","chap","landing","bad"].forEach(function(s){ $(s).classList.toggle("hide", s!==id); }); }
+function show(id){ ["student","chap","landing","bad","old"].forEach(function(s){ $(s).classList.toggle("hide", s!==id); }); }
 
 function scheduleHTML(){
   var now = new Date();
@@ -522,8 +568,8 @@ function relayFor(link){
   if (relayCache[n]) return relayCache[n];
   var te = new TextEncoder();
   return relayCache[n] = Promise.all([
-    crypto.subtle.digest("SHA-256", te.encode("ihs-trip-topic|" + n)),
-    crypto.subtle.digest("SHA-256", te.encode("ihs-trip-key|" + n))
+    crypto.subtle.digest("SHA-256", te.encode("ihs-trip-topic|" + TID + "|" + n)),
+    crypto.subtle.digest("SHA-256", te.encode("ihs-trip-key|" + TID + "|" + n))
   ]).then(function(r){
     var hex = Array.prototype.map.call(new Uint8Array(r[0]), function(b){ return ("0"+b.toString(16)).slice(-2); }).join("").slice(0,32);
     return crypto.subtle.importKey("raw", r[1], "AES-GCM", false, ["encrypt","decrypt"]).then(function(key){ return {topic:"ihsband-"+hex, key:key}; });
@@ -650,10 +696,10 @@ function student(info){
     var ev = [];
     T.checkins.forEach(function(c){ var d = at(c.time); if (d) ev.push({d:d, title: c.inPerson ? "Band trip: meet " + info.c + " in person" + (c.place ? " (" + c.place + ")" : "") : "Band trip: text your check-in to " + info.c}); });
     T.schedule.forEach(function(it){ var d = at(it.time); if (d && it.remind) ev.push({d:d, title:"Band trip: " + it.what}); });
-    var L = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Islands Band//Trip//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH"];
+    var L = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//" + T.band + "//Trip//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH"];
     var stamp = icsTime(new Date());
     ev.forEach(function(e,i){
-      L.push("BEGIN:VEVENT","UID:islands-band-trip-"+T.date+"-"+i+"@sharks-band","DTSTAMP:"+stamp,
+      L.push("BEGIN:VEVENT","UID:band-trip-"+TID.replace(/[^\w-]/g,"")+"-"+i+"@sharks-band","DTSTAMP:"+stamp,
         "DTSTART:"+icsTime(e.d),"DTEND:"+icsTime(new Date(e.d.getTime()+10*60000)),"SUMMARY:"+icsEsc(e.title),
         "DESCRIPTION:"+icsEsc("Open your trip page: " + location.href),
         "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(e.title),"TRIGGER:-PT5M","END:VALARM",
@@ -787,6 +833,7 @@ function chaperone(){
   (function(){
     var m = location.hash.match(/[#&]setup=([^&]+)/); if (!m) return;
     function apply(d){
+      if (!d || d.t !== TID) throw "old";
       d = unpackSetup(d);
       var st = {name:d.s.name||"", phone:d.s.phone||"", group:d.s.group||"", band:d.s.band||"", roster:d.s.roster||"", backups:d.s.backups||"",
                 ci:S.ci||{}, bus:S.bus||{}, lost:S.lost||{who:"",where:"",wear:"",done:[]}};
@@ -795,18 +842,21 @@ function chaperone(){
     if (m[1].charAt(0) === "z"){   // compressed: decode async, store, then reload clean
       if (!canZip()){ setTimeout(function(){ $("setupErr").classList.remove("hide"); }, 0); history.replaceState(null,"",location.pathname+location.search+"#chap"); return; }
       zipDec(m[1].slice(1)).then(function(d){
+        if (!d || d.t !== TID){ $("oldSetup").classList.remove("hide"); history.replaceState(null,"",location.pathname+location.search+"#chap"); return; }
         var r = apply(d); put(CK, r.st); if (Array.isArray(r.m)) put("trip.master.v1", r.m); put("trip.all.v1", r.all || []); put("trip.justSetUp", 1);
         history.replaceState(null, "", location.pathname + location.search + "#chap"); location.reload();
       }).catch(function(){ $("setupErr").classList.remove("hide"); history.replaceState(null,"",location.pathname+location.search+"#chap"); });
       return;
     }
     try {
-      var d = unpackSetup(dec(m[1]));
+      var raw = dec(m[1]);
+      if (!raw || raw.t !== TID) throw "old";
+      var d = unpackSetup(raw);
       S = {name:d.s.name||"", phone:d.s.phone||"", group:d.s.group||"", band:d.s.band||"", roster:d.s.roster||"", backups:d.s.backups||"",
            ci:S.ci||{}, bus:S.bus||{}, lost:S.lost||{who:"",where:"",wear:"",done:[]}};
       save(); if (Array.isArray(d.m)) put("trip.master.v1", d.m); put("trip.all.v1", d.all || []);
       setTimeout(function(){ toast("You're all set up!"); }, 300);
-    } catch(e){ setTimeout(function(){ $("setupErr").classList.remove("hide"); }, 0); }
+    } catch(e){ setTimeout(function(){ $(e === "old" ? "oldSetup" : "setupErr").classList.remove("hide"); }, 0); }
     history.replaceState(null, "", location.pathname + location.search + "#chap");   // keep names out of the address bar
   })();
   if (get("trip.justSetUp", 0)){ put("trip.justSetUp", 0); setTimeout(function(){ toast("You're all set up!"); }, 300); }
@@ -837,7 +887,7 @@ function chaperone(){
   function studentLink(){
     var base = location.href.split("#")[0];
     // students get the BAND chat link and backup chaperone NAMES only, no phone numbers
-    return base + "#s=" + enc({c:S.name, k:S.band, g:S.group, b:parseLines(S.backups).map(function(x){return {n:x.n};})});
+    return base + "#s=" + enc({t:TID, c:S.name, k:S.band, g:S.group, b:parseLines(S.backups).map(function(x){return {n:x.n};})});
   }
   function showLink(){
     if (!S.name || !/band\.us\//i.test(S.band||"")) return;
@@ -1017,7 +1067,7 @@ function chaperone(){
     var g = b.closest("[data-g]").dataset.g, x = buildFor(g); if (!x) return;
     var base = location.href.split("#")[0];
     if (b.dataset.a === "student"){
-      copyStr(base + "#s=" + enc({c:x.s.name, k:x.s.band, g:g, b:x.others.map(function(o){ return {n:o.n}; })}), "Student link for " + g + " copied");
+      copyStr(base + "#s=" + enc({t:TID, c:x.s.name, k:x.s.band, g:g, b:x.others.map(function(o){ return {n:o.n}; })}), "Student link for " + g + " copied");
       return;
     }
     // "this is me" keeps the full roster on this phone; links for others carry only their own group (much shorter)
@@ -1047,8 +1097,8 @@ function chaperone(){
 
   // bus
   var busKey = "depart";
-  var BUS = [{k:"depart",l:"Leaving Islands"},{k:"stop1",l:"Rest stop (going)"},{k:"arrive",l:"Off at Universal"},
-             {k:"return",l:"Leaving Universal"},{k:"stop2",l:"Rest stop (home)"},{k:"home",l:"Off at Islands"}];
+  var BUS = [{k:"depart",l:"Leaving "+T.home},{k:"stop1",l:"Rest stop (going)"},{k:"arrive",l:"Off at "+T.venue},
+             {k:"return",l:"Leaving "+T.venue},{k:"stop2",l:"Rest stop (home)"},{k:"home",l:"Off at "+T.home}];
   // a shared bus count from another chaperone -> merge their checkmarks into this phone
   var openBusTab = false;
   var pendingShort = (location.hash.match(/[#&]b=([^&]+)/) || [])[1] || null;   // short form needs the roster, so it's applied below
@@ -1109,7 +1159,7 @@ function chaperone(){
     "Call and text the student. Ask their buddies where they last saw them.",
     "Check the spot from their last check-in, plus nearby restrooms, ride exits and shops.",
     "Alert the other chaperones (buttons below) with the name, last-seen place and what they're wearing.",
-    "Not found in 15 minutes: tell any Universal team member or go to Guest Services. Give the name, age, description and your phone number.",
+    "Not found in 15 minutes: get on-site help. " + T.venueHelp.replace(/ and say you're with a school group\.?$/i, ".") + " Give the name, age, description and your phone number.",
     "Notify the trip lead and follow school policy for contacting the parent/guardian and administrator.",
     "If there is any sign of danger, call 911 right away."
   ];
@@ -1117,6 +1167,7 @@ function chaperone(){
   ["lostWhere","lostWear"].forEach(function(id){ $(id).addEventListener("input", function(){ S.lost[id==="lostWhere"?"where":"wear"]=this.value; save(); renderLostActions(); }); });
   $("lostWho").onchange = function(){ S.lost.who=this.value; save(); renderLostActions(); };
   $("lostReset").onclick = function(){ if (confirmTap(this)) { S.lost={who:"",where:"",wear:"",done:[]}; save(); render(); } };
+  $("wipeAll").onclick = function(){ if (confirmTap(this)) { wipeTrip(false); put("trip.id", TID); history.replaceState(null, "", location.pathname + location.search + "#chap"); location.reload(); } };
 
   function confirmTap(btn){ // two taps to confirm, no browser dialogs
     if (btn.dataset.armed){ delete btn.dataset.armed; btn.textContent = btn.dataset.label; return true; }
@@ -1169,8 +1220,7 @@ function chaperone(){
   function parkShort(w){
     w = String(w||"");
     if (/bus/i.test(w)) return "Bus";
-    if (/islands/i.test(w)) return "Islands";
-    if (/universal/i.test(w)) return "Universal";
+    if (PARKSHORT[w]) return PARKSHORT[w];
     return w;
   }
   function clock(ts){ var d=new Date(ts), h=d.getHours()%12||12; return h+":"+pad(d.getMinutes())+(d.getHours()<12?" AM":" PM"); }
@@ -1358,12 +1408,15 @@ function chaperone(){
 function route(){
   var h = location.hash || "";
   if (h.indexOf("#s=") === 0){
-    try { var info = dec(h.slice(3)); if (!info.c || !(info.k || info.p)) throw 0; put("trip.student.info", info); put("trip.mode", "student"); student(info); } catch(e){ show("bad"); }
+    var info = null; try { info = dec(h.slice(3)); if (!info.c || !(info.k || info.p)) info = null; } catch(e){}
+    if (!info) show("bad");
+    else if (info.t !== TID) show("old");
+    else { put("trip.student.info", info); put("trip.mode", "student"); student(info); }
   } else if (h.indexOf("#chap") === 0){ put("trip.mode", "chap"); chaperone(); }
   else {
     // opened from the home screen or with no #: reopen whatever this phone used last
     var mode = get("trip.mode", ""), saved = get("trip.student.info", null);
-    if (mode === "student" && saved && (saved.k || saved.p)) student(saved);
+    if (mode === "student" && saved && (saved.k || saved.p) && saved.t === TID) student(saved);
     else if (mode === "chap") chaperone();
     else show("landing");
   }

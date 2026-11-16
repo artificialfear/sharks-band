@@ -35,6 +35,8 @@ def relay(route, request):
     return route.fulfill(status=200, headers=CORS, body="".join(json.dumps(m)+"\n" for m in msgs))
 
 BAND="https://band.us/band/12345678/chat/CAbcDEF"
+import re as _re
+TID=_re.search(r'id:\s*"([^"]+)"', open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..","trip","trip-config.js")).read()).group(1)
 with sync_playwright() as pw:
     b=pw.chromium.launch(channel="chromium")
     errs=[]
@@ -58,7 +60,7 @@ with sync_playwright() as pw:
     # student
     sc=mk(); s=sc.new_page(); s.on("pageerror",lambda e: errs.append(str(e)))
     link=base+"#s="+s.evaluate("""(o)=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')""",
-        {"c":"Mrs. Graham","k":BAND,"g":"Group A","b":[{"n":"Mr. Graham"}]})
+        {"t":TID,"c":"Mrs. Graham","k":BAND,"g":"Group A","b":[{"n":"Mr. Graham"}]})
     s.goto(link); s.wait_for_timeout(300)
     s.fill("#sNameIn","ava"); s.fill("#sBudIn","Marcus and Kim from Group B"); s.click("#sNameSave")
     s.click("#checkBtn"); s.wait_for_timeout(1200)
@@ -77,7 +79,7 @@ with sync_playwright() as pw:
     # wrong group link: different topic, must not reach Mrs. Graham
     s3=mk().new_page()
     l3=base+"#s="+s3.evaluate("""(o)=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')""",
-        {"c":"Ms. Kaitlyn","k":"https://band.us/band/12345678/chat/ZZZother","g":"Group C","b":[]})
+        {"t":TID,"c":"Ms. Kaitlyn","k":"https://band.us/band/12345678/chat/ZZZother","g":"Group C","b":[]})
     s3.goto(l3); s3.wait_for_timeout(300); s3.fill("#sNameIn","Jordan Smith"); s3.click("#sNameSave")
     s3.evaluate("document.getElementById('checkBtn').click()"); s3.wait_for_timeout(1000)
     check(len(RELAY)==2, "other group's note went to a different topic")

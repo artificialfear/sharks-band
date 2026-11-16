@@ -77,3 +77,13 @@ Trip happened Sat Nov 14 2026. Final state of the trip tool:
 - Tests: tests/trip_smoke.py, tests/trip_setup_links.py, tests/trip_autocheck.py (fake ntfy via Playwright routes; ntfy.sh is unreachable from the build sandbox).
 - Open items: bus parking spot and exact return time never filled in ("TBD" / "right after"); bring list still says "within dress code" (unanswered); roster sheet "Islands Band Universal Trip Roster (Nov 14, 2026)" is in Mat's personal Drive (move to district Drive or delete); saved .ics reminders never update.
 - Next: decide whether to turn the trip page into a reusable template for future trips (new date/groups/check-ins, a reset for old check-in data) or archive it.
+
+## Trip page as a reusable template (2026-11-16)
+- Mat chose to keep the trip page as a template. The roster sheet "Islands Band Universal Trip Roster (Nov 14, 2026)" was moved to Drive trash on 2026-11-16 (Mat's call).
+- **To run a new trip:** follow the NEW TRIP CHECKLIST at the top of `trip/trip-config.js`: new `id`, edit the details, bump `?v=` (index.html + sw.js) and the sw.js CACHE, push, then the trip leader pastes the new roster on #chap and sends new setup links.
+- Config fields: `id` (falls back to `date`), `band` (last word turns teal in the header), `home` / `venue` (bus labels), `venueHelp` (student "can't reach any chaperone" line + lost step 4), `parks` (strings or `{name, short}`; short = label on app check-ins), `tourCompany` (null hides it). Missing lists default to empty.
+- Trip id (`TID`) is used for: (1) storage reset. If `trip.id` in localStorage differs, every `trip.*` key except `trip.student.name` is removed. (2) Links: student links carry `t`, and setup payloads carry `t`. A missing or different `t` is rejected (`#old` section / `#oldSetup` card), so links from the Nov 14 trip (which have no `t`) are now dead on purpose. (3) Relay: topic/key = SHA-256("ihs-trip-topic|"/"ihs-trip-key|" + TID + "|" + normalized BAND link).
+- "This trip is over" (`.overCard`) shows from 6 AM the day after `date`.
+- Setup tab: `#wipeAll` (two taps) clears all `trip.*` keys, including the student name.
+- Known gaps: students' saved .ics reminders still don't update after config changes. The bring list still says "within dress code" (never decided). `#chap&r=` roster links don't carry a trip id (only the leader uses them).
+- Tests: `tests/trip_template.py` (storage reset, old links, over card, wipe, alternate config via a routed trip-config.js) plus the three existing trip tests. Current config: trip-config.js ?v=13, sw cache band-trip-v33.
