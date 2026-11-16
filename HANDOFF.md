@@ -66,3 +66,14 @@
 - No secret in the repo: only phones holding the group's BAND chat link can derive topic/key. Relay never sees plaintext.
 - Not testable from the build sandbox (ntfy.sh blocked); tests/trip_autocheck.py fakes the relay with Playwright routes.
 - Chaperone also holds a live EventSource on `/<topic>/sse?since=` while the page is visible (closed when hidden, reopened on return); 30 s polling stays as a fallback.
+
+## Session handoff: trip wrap-up (2026-11-16)
+Trip happened Sat Nov 14 2026. Final state of the trip tool:
+- Student "Send my check-in" checks in through the tracker and copies the message; it does NOT open BAND (BAND = backup; link "Open my group's BAND chat (backup)" under the button). Help buttons (separated/sick/other) still open BAND. Status line: yellow "Sending…" then green "reached <chaperone>'s tracker".
+- Chaperone Check-ins tab: numbered round boxes (2-col grid, "x/y", "y/y ✔", "x/y · n late" in red at +15 min). App check-ins show "h:mm · Universal/Islands/Bus" + per-park counts. Unmatched app names in a yellow box with × to clear (removes from S.um). Status line "Auto check-off is on / can't connect".
+- Auto check-off worked live with near-instant delivery: chaperone holds an EventSource on ntfy `/<topic>/sse?since=` while visible (closed when hidden), 30 s poll fallback; student retries every 15 s.
+- Mat's rules: a check-in counts ONLY for the student who tapped (buddies never auto-checked). Last-name-only matching requires the first name/initial to match too. Changes must never require re-setup or new links.
+- Final config (trip-config.js ?v=12, sw cache band-trip-v32): check-ins 8, 12, 2, 4, 6 PM; Check-in 5 label "head to the Lighthouse for the 6:30 meet-up"; 6:30 PM meet up at the Islands of Adventure Lighthouse, bus leaves right after.
+- Tests: tests/trip_smoke.py, tests/trip_setup_links.py, tests/trip_autocheck.py (fake ntfy via Playwright routes; ntfy.sh is unreachable from the build sandbox).
+- Open items: bus parking spot and exact return time never filled in ("TBD" / "right after"); bring list still says "within dress code" (unanswered); roster sheet "Islands Band Universal Trip Roster (Nov 14, 2026)" is in Mat's personal Drive (move to district Drive or delete); saved .ics reminders never update.
+- Next: decide whether to turn the trip page into a reusable template for future trips (new date/groups/check-ins, a reset for old check-in data) or archive it.
